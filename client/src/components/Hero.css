@@ -1,0 +1,35 @@
+.hero {
+    text-align: center;
+}
+
+.title {
+    font-size: 4.8rem;
+    margin: 0 0 0.8rem 0;
+    font-weight: 700;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+}
+.subtitle {
+    font-size: 2rem;
+    padding: 0px;
+    margin: 0 0 2rem 0;
+    font-weight: 500;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.hero {
+    padding: 15% 0px 2px 0px;
+}
+
+.cta button {
+  font-size: 1.8rem;
+  font-family: inherit;
+  background: var(--main-gradient);
+  border: none;
+  padding: 10px 20px;
+  color: white;
+  border-radius: 10px;
+}
