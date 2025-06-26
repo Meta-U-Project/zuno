@@ -1,0 +1,51 @@
+.navbar {
+    padding: 0px 50px 10px 50px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.navList {
+    list-style-type: none;
+    display: flex;
+    justify-content: space-around;
+    margin: 0;
+    padding: 0;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 500;
+}
+
+.navItem {
+    margin: 0 10px;
+}
+
+.nav-left {
+    font-size: 3rem;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 500;
+}
+
+.nav-right {
+    padding-top: 25px;
+}
+
+.list {
+    display: flex;
+    padding-top: 5px;
+}
+
+.signUpButton {
+    background: var(--main-gradient);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-text-fill-color: white;
+    background-clip: initial;
+    font-family: inherit;
+}
