@@ -25,14 +25,14 @@
 }
 
 .cta button {
-  font-size: 1.8rem;
-  font-weight: 500;
-  font-family: inherit;
-  background: var(--main-gradient);
-  border: none;
-  padding: 10px 20px;
-  color: white;
-  border-radius: 10px;
+    font-size: 1.8rem;
+    font-weight: 500;
+    font-family: inherit;
+    background: var(--main-gradient);
+    border: none;
+    padding: 10px 20px;
+    color: white;
+    border-radius: 10px;
 }
 
 .image {
