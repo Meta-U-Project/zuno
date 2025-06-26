@@ -5,6 +5,7 @@ import Features from "../components/Features";
 import Overview from "../components/Overview";
 import SchoolSlider from "../components/SchoolSlider";
 import Testimonials from "../components/Testimonials";
+import Footer from "../components/Footer";
 
 const HomePage = () => {
     return (
@@ -18,6 +19,7 @@ const HomePage = () => {
             <Seperator />
             <SchoolSlider />
             <Testimonials />
+            <Footer/>
 
         </div>
     );

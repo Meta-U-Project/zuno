@@ -1,51 +1,148 @@
-.navbar {
-    padding: 0px 50px 10px 50px;
-    display: flex;
-    justify-content: space-between;
+.footer {
+    margin-top: 4rem;
 }
 
-.navList {
-    list-style-type: none;
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem 2rem 2rem;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1.2fr;
+    gap: 3rem;
+}
+
+.footer-section {
     display: flex;
-    justify-content: space-around;
+    flex-direction: column;
+}
+
+.footer-brand {
+    margin-bottom: 1rem;
+}
+
+.footer-logo {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+}
+
+.footer-tagline {
+    font-size: 1rem;
+    color: #666;
     margin: 0;
+    font-weight: 400;
+}
+
+.footer-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 1.5rem 0;
+    color: #333;
+}
+
+.footer-links {
+    list-style: none;
     padding: 0;
-    background: var(--main-gradient);
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 0.8rem;
+}
+
+.footer-links a {
+    color: #666;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--purple);
+}
+
+
+
+.newsletter {
+    margin-top: 1rem;
+}
+
+.newsletter-text {
+    font-size: 0.95rem;
+    color: #666;
+    margin: 0 0 1rem 0;
     font-weight: 500;
 }
 
-.navItem {
-    margin: 0 10px;
-}
-
-.nav-left {
-    font-size: 3rem;
-    background: var(--main-gradient);
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 500;
-}
-
-.nav-right {
-    padding-top: 25px;
-}
-
-.list {
+.newsletter-form {
     display: flex;
-    padding-top: 5px;
+    gap: 0.5rem;
 }
 
-.signUpButton {
+.newsletter-input {
+    flex: 1;
+    padding: 0.7rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.newsletter-input:focus {
+    border-color: var(--purple);
+}
+
+.newsletter-input::placeholder {
+    color: #999;
+}
+
+.newsletter-button {
+    padding: 0.7rem 1rem;
     background: var(--main-gradient);
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: 8px;
     color: white;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    -webkit-text-fill-color: white;
-    background-clip: initial;
     font-family: inherit;
+    transition: transform 0.2s ease;
+}
+
+
+.footer-bottom-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.copyright {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}
+
+.footer-legal {
+    display: flex;
+    gap: 2rem;
+}
+
+.footer-legal a {
+    font-size: 0.9rem;
+    color: #666;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-legal a:hover {
+    color: var(--purple);
 }
