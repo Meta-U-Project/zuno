@@ -17,6 +17,9 @@ const Overview = () => {
                         stay organized, study smarter, and stay connected—built from
                         the ground up with students in mind.
                     </p>
+                    <div className="cta">
+                        <button>join zuno</button>
+                    </div>
                 </div>
                 <div className="overview-image">
                     <img src="images/hero.png" alt="overview image"/>

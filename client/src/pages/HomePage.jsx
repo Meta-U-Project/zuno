@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import Seperator from "../components/Seperator";
 import Features from "../components/Features";
 import Overview from "../components/Overview";
+import SchoolSlider from "../components/SchoolSlider";
 
 const HomePage = () => {
     return (
@@ -13,6 +14,8 @@ const HomePage = () => {
             <Overview />
             <Seperator />
             <Features />
+            <Seperator />
+            <SchoolSlider />
 
         </div>
     );

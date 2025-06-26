@@ -1,0 +1,25 @@
+.school_slider img {
+    height: 100px;
+    margin: 0 40px;
+}
+
+.schools {
+    overflow: hidden;
+    padding: 60px 0;
+    white-space: nowrap;
+}
+
+.school_slider {
+    animation: 5s slider linear infinite;
+    display: inline-block;
+}
+
+
+@keyframes slider {
+    from {
+        transform: translate(0);
+    }
+    to {
+        transform: translate(-100%);
+    }
+}
