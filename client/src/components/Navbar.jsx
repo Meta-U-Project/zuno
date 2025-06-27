@@ -1,37 +1,56 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import './Navbar.css';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const isHomePage = location.pathname === '/';
 
-    const handleSignUpClick = () => {
-        navigate('/contact');
+    const handleNavigation = (sectionId) => {
+        if (isHomePage) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            navigate(`/#${sectionId}`);
+            setTimeout(() => {
+                const element = document.getElementById(sectionId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
+        }
     };
+
+    const signup = () => {
+        navigate('/signup');
+    };
+
     return (
         <nav className='navbar'>
             <div className='nav-left'>
-                <span>zuno.</span>
+                <span onClick={() => handleNavigation('home')}>zuno.</span>
             </div>
             <div className='nav-right'>
                 <ul className='navList'>
                     <div className='list'>
                         <li className='navItem'>
-                            <Link to="/" className='navLink'>Home</Link>
+                            <a href={isHomePage ? "#home" : "/#home"} className='navLink' onClick={(e) => { e.preventDefault(); handleNavigation('home'); }}>Home</a>
                         </li>
                         <li className='navItem'>
-                            <Link to="/about" className='navLink'>Features</Link>
+                            <a href={isHomePage ? "#features" : "/#features"} className='navLink' onClick={(e) => { e.preventDefault(); handleNavigation('features'); }}>Features</a>
                         </li>
                         <li className='navItem'>
-                            <Link to="/services" className='navLink'>Contact</Link>
+                            <a href={isHomePage ? "#contact" : "/#contact"} className='navLink' onClick={(e) => { e.preventDefault(); handleNavigation('contact'); }}>Contact</a>
                         </li>
                     </div>
                     <li className='navItem'>
-                        <button className='signUpButton' onClick={handleSignUpClick}>Sign Up</button>
+                        <button className='signUpButton' onClick={signup}>Sign Up</button>
                     </li>
                 </ul>
             </div>
-
         </nav>
     );
 };

@@ -5,22 +5,31 @@ import Features from "../components/Features";
 import Overview from "../components/Overview";
 import SchoolSlider from "../components/SchoolSlider";
 import Testimonials from "../components/Testimonials";
+import Contact from "../components/Contact";
 import Footer from "../components/Footer";
 
 const HomePage = () => {
     return (
         <div>
             <Navbar />
-            <Hero />
+            <section id="home">
+                <Hero />
+            </section>
             <Seperator />
-            <Overview />
-            <Seperator />
-            <Features />
+            <section id="features">
+                <Overview />
+                <Seperator />
+                <Features />
+            </section>
             <Seperator />
             <SchoolSlider />
+            <Seperator />
             <Testimonials />
-            <Footer/>
-
+            <Seperator />
+            <section id="contact">
+                <Contact />
+            </section>
+            <Footer />
         </div>
     );
 };

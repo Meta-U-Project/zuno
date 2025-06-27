@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String           @unique
+  phone           String?
+  school          String?
+  password        String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt @default(now())
+
+  courses         Course[]         @relation("UserCourses")
+  tasks           Task[]           @relation("UserTasks")
+  calendarEvents  CalendarEvent[]  @relation("UserCalendarEvents")
+  studyGroups     StudyGroup[]     @relation("UserCreatedGroups")
+  groupMembership StudyGroupMember[]
+  messagesSent    Message[]        @relation("SentMessages")
+  messagesReceived Message[]       @relation("ReceivedMessages")
+  notifications   Notification[]
+  analytics       Analytics?
+  createdEvents   CalendarEvent[]  @relation("CreatedEvents")
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TaskType {
+  ASSIGNMENT
+  QUIZ
+  EXAM
+  MEETING
+  STUDY_SESSION
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum EventType {
+  TASK_BLOCK
+  GROUP_SESSION
+  AVAILABILITY
+}
+
+enum NotificationType {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Course {
+  id              String   @id @default(uuid())
+  user            User     @relation("UserCourses", fields: [userId], references: [id])
+  userId          String
+  course_name     String
+  difficulty_level DifficultyLevel
+  course_code     String
+  instructor_name String
+  term            String
+  tasks           Task[]
+  studyGroups     StudyGroup[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Task {
+  id              String   @id @default(uuid())
+  user            User     @relation("UserTasks", fields: [userId], references: [id])
+  userId          String
+  course          Course   @relation(fields: [courseId], references: [id])
+  courseId        String
+  title           String
+  type            TaskType
+  description     String
+  priority        Priority
+  deadline        DateTime
+  completed       Boolean  @default(false)
+  calendarEvents  CalendarEvent[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id              String    @id @default(uuid())
+  user            User      @relation("UserCalendarEvents", fields: [userId], references: [id])
+  userId          String
+  task            Task      @relation(fields: [taskId], references: [id])
+  taskId          String
+  start_time      DateTime
+  end_time        DateTime
+  type            EventType
+  is_group_event  Boolean
+  location        String
+  createdBy       User      @relation("CreatedEvents", fields: [createdById], references: [id])
+  createdById     String
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model StudyGroup {
+  id              String            @id @default(uuid())
+  name            String
+  created_by      User              @relation("UserCreatedGroups", fields: [createdById], references: [id])
+  createdById     String
+  course          Course            @relation(fields: [courseId], references: [id])
+  courseId        String
+  members         StudyGroupMember[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model StudyGroupMember {
+  group           StudyGroup @relation(fields: [groupId], references: [id])
+  groupId         String
+  user            User       @relation(fields: [userId], references: [id])
+  userId          String
+
+  @@id([groupId, userId]) // composite primary key
+}
+
+model Message {
+  id              String    @id @default(uuid())
+  sender          User      @relation("SentMessages", fields: [senderId], references: [id])
+  senderId        String
+  receiver        User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiverId      String
+  message_body    String
+  timestamp       DateTime  @default(now())
+  read            Boolean   @default(false)
+}
+
+model Notification {
+  id              String    @id @default(uuid())
+  user            User      @relation(fields: [userId], references: [id])
+  userId          String
+  type            NotificationType
+  content         String
+  trigger_event   String
+  sent_at         DateTime
+  status          NotificationStatus
+}
+
+model Analytics {
+  id                String    @id @default(uuid())
+  user              User      @relation(fields: [userId], references: [id])
+  userId            String    @unique
+  total_study_hours Int       @default(0)
+  tasks_completed   Int       @default(0)
+  engagement_score  Float     @default(0.0)
+  last_active       DateTime?
+  updated_at        DateTime  @updatedAt
+}
