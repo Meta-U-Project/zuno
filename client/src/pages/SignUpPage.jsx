@@ -1,0 +1,224 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import Loading from "../components/Loading";
+import './SignUpPage.css'
+
+const SignUpPage = () => {
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        school: '',
+        password: ''
+    });
+
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+        if (error) setError('');
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to create account');
+            }
+
+            console.log('Sign up successful:', data);
+
+            setFormData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                phone: '',
+                school: '',
+                password: ''
+            });
+
+            setIsLoading(false);
+            setIsRedirecting(true);
+
+            setTimeout(() => {
+                navigate('/login');
+            }, 2000);
+
+        } catch (err) {
+            console.error('Sign up error:', err);
+            setError(err.message || 'Failed to create account. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div>
+            {isRedirecting && <Loading message="Account created successfully! Redirecting to login..." />}
+            <Navbar />
+            <div className="signup">
+                <div className="signup-header-container">
+                    <div className="signup-header">
+                        <h1 className="overview-header">try zuno.</h1>
+                        <p className="contact-subtitle">Sign up for a zuno account to start your learning journey.</p>
+                    </div>
+                </div>
+
+                <div className="signup-content">
+                    <div className="contact-form-container">
+                        <form className="contact-form" onSubmit={handleSubmit}>
+                            {error && (
+                                <div className="error-message" style={{
+                                    background: '#fee',
+                                    color: '#c33',
+                                    padding: '1rem',
+                                    borderRadius: '8px',
+                                    marginBottom: '1rem',
+                                    textAlign: 'center',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label htmlFor="firstName">First Name</label>
+                                <input
+                                    type="text"
+                                    id="firstName"
+                                    name="firstName"
+                                    value={formData.firstName}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Jane"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="lastName">Last Name</label>
+                                <input
+                                    type="text"
+                                    id="lastName"
+                                    name="lastName"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Doe"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="email">Email Address</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Enter your email address"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="phone">Phone Number</label>
+                                <input
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="(555) 123-4567"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="school">School</label>
+                                <input
+                                    type="text"
+                                    id="school"
+                                    name="school"
+                                    value={formData.school}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Enter your school name"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="password">Password</label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Enter your password"
+                                />
+                            </div>
+
+                            <div className="form-options" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                marginBottom: '1rem',
+                                fontSize: '0.9rem'
+                            }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input type="checkbox" required />
+                                    I agree to the Terms of Service and Privacy Policy
+                                </label>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="submit-button"
+                                disabled={isLoading}
+                                style={{
+                                    opacity: isLoading ? 0.7 : 1,
+                                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {isLoading ? 'Creating Account...' : 'Sign Up'}
+                            </button>
+
+                            <div className="login-footer" style={{
+                                textAlign: 'center',
+                                marginTop: '2rem',
+                                paddingTop: '2rem',
+                                borderTop: '1px solid #eee',
+                                color: '#666'
+                            }}>
+                                <p>Already have an account? <a href="/login" style={{ color: 'var(--purple)', textDecoration: 'none', fontWeight: '500' }}>Log in here</a></p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SignUpPage;
