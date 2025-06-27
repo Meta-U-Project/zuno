@@ -1,33 +1,34 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
 const Navbar = () => {
-    const navigate = useNavigate();
-
-    const handleSignUpClick = () => {
-        navigate('/contact');
+    const handleScrollTo = (sectionId) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
     };
+
     return (
         <nav className='navbar'>
             <div className='nav-left'>
-                <span>zuno.</span>
+                <span onClick={() => handleScrollTo('home')}>zuno.</span>
             </div>
             <div className='nav-right'>
                 <ul className='navList'>
                     <div className='list'>
                         <li className='navItem'>
-                            <Link to="/" className='navLink'>Home</Link>
+                            <a href="#home" className='navLink' onClick={(e) => { e.preventDefault(); handleScrollTo('home'); }}>Home</a>
                         </li>
                         <li className='navItem'>
-                            <Link to="/about" className='navLink'>Features</Link>
+                            <a href="#features" className='navLink' onClick={(e) => { e.preventDefault(); handleScrollTo('features'); }}>Features</a>
                         </li>
                         <li className='navItem'>
-                            <Link to="/services" className='navLink'>Contact</Link>
+                            <a href="#contact" className='navLink' onClick={(e) => { e.preventDefault(); handleScrollTo('contact'); }}>Contact</a>
                         </li>
                     </div>
                     <li className='navItem'>
-                        <button className='signUpButton' onClick={handleSignUpClick}>Sign Up</button>
+                        <button className='signUpButton' onClick={() => handleScrollTo('contact')}>Sign Up</button>
                     </li>
                 </ul>
             </div>
