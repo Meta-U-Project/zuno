@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
-const LoginPage = () => {
-    const navigate = useNavigate();
+
+const ResetPassword = () => {
     const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    });
-
+            email: ''
+        });
+    const navigate = useNavigate();
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isRedirecting, setIsRedirecting] = useState(false);
@@ -28,33 +28,29 @@ const LoginPage = () => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
+            const response = await fetch('http://localhost:5000/api/auth/forgotPassword', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify(formData),
+                body: JSON.stringify(formData)
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
+                throw new Error(data.message || 'Couldn\'t reset password');
             }
-
-            console.log('Login successful:', data);
 
             setIsLoading(false);
             setIsRedirecting(true);
 
             setTimeout(() => {
-                navigate('/dashboard');
+                navigate('/login');
             }, 2000);
-
         } catch (err) {
-            console.error('Login error:', err);
-            setError(err.message || 'Invalid email or password. Please try again.');
+            setError(err.message || 'Something went wrong');
         } finally {
             setIsLoading(false);
         }
@@ -62,16 +58,17 @@ const LoginPage = () => {
 
     return (
         <div>
-            {isRedirecting && <Loading message="Login successful! Redirecting to dashboard..." />}
+            {isRedirecting && <Loading message="Account created successfully! Redirecting to login..." />}
             <Navbar />
             <div className="signup">
                 <div className="signup-header-container">
                     <div className="signup-header">
-                        <h1 className="overview-header">welcome back.</h1>
-                        <p className="contact-subtitle">Sign in to your account to continue your learning journey.</p>
+                        <h1 className="overview-header">forgot your password?</h1>
+                        <p className="contact-subtitle">enter your email address to reset it.</p>
                     </div>
                 </div>
-                <div className="contact-content">
+
+                <div className="signup-content">
                     <div className="contact-form-container">
                         <form className="contact-form" onSubmit={handleSubmit}>
                             {error && (
@@ -101,35 +98,6 @@ const LoginPage = () => {
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label htmlFor="password">Password</label>
-                                <input
-                                    type="password"
-                                    id="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    required
-                                    placeholder="Enter your password"
-                                />
-                            </div>
-
-                            <div className="form-options" style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: '1rem',
-                                fontSize: '0.9rem'
-                            }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <input type="checkbox" />
-                                    Remember me
-                                </label>
-                                <a href="/forgot-password" style={{ color: 'var(--purple)', textDecoration: 'none' }}>
-                                    Forgot password?
-                                </a>
-                            </div>
-
                             <button
                                 type="submit"
                                 className="submit-button"
@@ -139,18 +107,8 @@ const LoginPage = () => {
                                     cursor: isLoading ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                {isLoading ? 'Signing In...' : 'Sign In'}
+                                {isLoading ? 'Resetting...' : 'Reset Password'}
                             </button>
-
-                            <div className="login-footer" style={{
-                                textAlign: 'center',
-                                marginTop: '2rem',
-                                paddingTop: '2rem',
-                                borderTop: '1px solid #eee',
-                                color: '#666'
-                            }}>
-                                <p>Don't have an account? <a href="/signup" style={{ color: 'var(--purple)', textDecoration: 'none', fontWeight: '500' }}>Sign up here</a></p>
-                            </div>
                         </form>
                     </div>
                 </div>
@@ -159,4 +117,4 @@ const LoginPage = () => {
     );
 };
 
-export default LoginPage;
+export default ResetPassword;
