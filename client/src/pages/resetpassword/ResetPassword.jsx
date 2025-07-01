@@ -1,8 +1,10 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import Loading from "../components/Loading";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import "./ResetPassword.css";
+import Navbar from "../../components/Navbar";
+import Loading from "../../components/Loading";
+import { PAGES } from "../../utils/constants";
 
 
 const ResetPassword = () => {
@@ -28,7 +30,7 @@ const ResetPassword = () => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/forgotPassword', {
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/forgotPassword`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -47,7 +49,7 @@ const ResetPassword = () => {
             setIsRedirecting(true);
 
             setTimeout(() => {
-                navigate('/login');
+                navigate(PAGES.LOGIN.path);
             }, 2000);
         } catch (err) {
             setError(err.message || 'Something went wrong');
@@ -58,7 +60,7 @@ const ResetPassword = () => {
 
     return (
         <div>
-            {isRedirecting && <Loading message="Account created successfully! Redirecting to login..." />}
+            {isRedirecting && <Loading message="Email sent, click link in email to complete reset. Redirecting to log in..." />}
             <Navbar />
             <div className="signup">
                 <div className="signup-header-container">
@@ -72,15 +74,7 @@ const ResetPassword = () => {
                     <div className="contact-form-container">
                         <form className="contact-form" onSubmit={handleSubmit}>
                             {error && (
-                                <div className="error-message" style={{
-                                    background: '#fee',
-                                    color: '#c33',
-                                    padding: '1rem',
-                                    borderRadius: '8px',
-                                    marginBottom: '1rem',
-                                    textAlign: 'center',
-                                    fontSize: '0.9rem'
-                                }}>
+                                <div className="error-message">
                                     {error}
                                 </div>
                             )}
@@ -100,12 +94,8 @@ const ResetPassword = () => {
 
                             <button
                                 type="submit"
-                                className="submit-button"
+                                className={`submit-button ${isLoading ? 'loading' : ''}`}
                                 disabled={isLoading}
-                                style={{
-                                    opacity: isLoading ? 0.7 : 1,
-                                    cursor: isLoading ? 'not-allowed' : 'pointer'
-                                }}
                             >
                                 {isLoading ? 'Resetting...' : 'Reset Password'}
                             </button>

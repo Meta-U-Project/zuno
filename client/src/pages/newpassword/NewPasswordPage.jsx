@@ -1,11 +1,25 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Loading from "../components/Loading";
-import Navbar from "../components/Navbar";
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import "./NewPasswordPage.css";
+import Loading from "../../components/Loading";
+import Navbar from "../../components/Navbar";
+import { PAGES } from "../../utils/constants";
 const NewPasswordPage = () => {
     const { id, token } = useParams();
     const navigate = useNavigate();
+
+    const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+
+    const toggleNewPasswordVisibility = () => {
+        setNewPasswordVisible(!newPasswordVisible);
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+        setConfirmPasswordVisible(!confirmPasswordVisible);
+    };
 
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,7 +39,7 @@ const NewPasswordPage = () => {
         setError("");
 
         try {
-        const response = await fetch(`http://localhost:5000/api/auth/resetPassword/${id}/${token}`, {
+        const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/resetPassword/${id}/${token}`, {
             method: "POST",
             headers: {
             "Content-Type": "application/json"
@@ -40,7 +54,7 @@ const NewPasswordPage = () => {
         }
 
         setIsRedirecting(true);
-        setTimeout(() => navigate("/login"), 3000);
+        setTimeout(() => navigate(PAGES.LOGIN.path), 3000);
         } catch (err) {
         setError(err.message || "Something went wrong");
         } finally {
@@ -64,15 +78,7 @@ const NewPasswordPage = () => {
             <div className="contact-form-container">
                 <form className="contact-form" onSubmit={handleSubmit}>
                 {error && (
-                    <div className="error-message" style={{
-                    background: '#fee',
-                    color: '#c33',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    textAlign: 'center',
-                    fontSize: '0.9rem'
-                    }}>
+                    <div className="error-message">
                     {error}
                     </div>
                 )}
@@ -80,37 +86,41 @@ const NewPasswordPage = () => {
                 <div className="form-group">
                     <label htmlFor="newPassword">New Password</label>
                     <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    placeholder="Enter a new password"
+                        type={newPasswordVisible ? 'text' : 'password'}
+                        id="newPassword"
+                        name="newPassword"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        placeholder="Enter a new password"
+                    />
+                    <FontAwesomeIcon
+                        icon={newPasswordVisible ? faEyeSlash : faEye}
+                        onClick={toggleNewPasswordVisibility}
                     />
                 </div>
 
                 <div className="form-group">
                     <label htmlFor="confirmPassword">Confirm New Password</label>
                     <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    placeholder="Re-enter your new password"
+                        type={confirmPasswordVisible ? 'text' : 'password'}
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        placeholder="Re-enter your new password"
+                    />
+                    <FontAwesomeIcon
+                        icon={confirmPasswordVisible ? faEyeSlash : faEye}
+                        onClick={toggleConfirmPasswordVisibility}
                     />
                 </div>
 
                 <button
                     type="submit"
-                    className="submit-button"
+                    className={`submit-button ${isLoading ? 'loading' : ''}`}
                     disabled={isLoading}
-                    style={{
-                    opacity: isLoading ? 0.7 : 1,
-                    cursor: isLoading ? 'not-allowed' : 'pointer'
-                    }}
                 >
                     {isLoading ? "Resetting..." : "Reset Password"}
                 </button>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import "./Dashboard.css";
 import Navbar from "../../components/Navbar";
 import Loading from "../../components/Loading";
+import { PAGES } from "../../utils/constants";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -9,17 +11,35 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const handleLogout = async () => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            if (response.ok) {
+                navigate(PAGES.LOGIN.path);
+            } else {
+                throw new Error('Failed to log out');
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+            setError('Failed to log out');
+        }
+    };
+
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/user/profile', {
+                const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/user/profile`, {
                     method: 'GET',
                     credentials: 'include',
                 });
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        navigate('/login');
+                        navigate(PAGES.LOGIN.path);
                         return;
                     }
                     throw new Error('Failed to fetch user profile');
@@ -31,7 +51,7 @@ const Dashboard = () => {
                 console.error('Error fetching user profile:', error);
                 setError('Failed to load user profile');
                 setTimeout(() => {
-                    navigate('/login');
+                    navigate(PAGES.LOGIN.path);
                 }, 2000);
             } finally {
                 setIsLoading(false);
@@ -61,40 +81,20 @@ const Dashboard = () => {
 
     return (
         <div>
+            <button className="logout" onClick={handleLogout}>Logout</button>
             <div className="contact">
                 <div className="contact-header">
                     <h1 className="overview-header">welcome, {userFirstName}.</h1>
                     <p className="contact-subtitle">Ready to continue your learning journey? Let's get started!</p>
                 </div>
 
-                <div className="contact-content" style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minHeight: '400px',
-                    textAlign: 'center'
-                }}>
-                    <div className="dashboard-placeholder" style={{
-                        background: 'white',
-                        padding: '3rem',
-                        borderRadius: '20px',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                        border: '1px solid #f0f0f0',
-                        maxWidth: '600px'
-                    }}>
-                        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📚</div>
-                        <h2 style={{
-                            color: '#333',
-                            marginBottom: '1rem',
-                            fontSize: '1.5rem'
-                        }}>
+                <div className="contact-content">
+                    <div className="dashboard-placeholder">
+                        <div className="dashboard-icon">📚</div>
+                        <h2 className="dashboard-title">
                             Your Dashboard is Coming Soon!
                         </h2>
-                        <p style={{
-                            color: '#666',
-                            lineHeight: '1.6',
-                            fontSize: '1rem'
-                        }}>
+                        <p className="dashboard-description">
                             We're working hard to build an amazing dashboard experience for you.
                             Soon you'll be able to track your progress, manage your study materials,
                             and connect with your study groups all from here.

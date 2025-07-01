@@ -1,0 +1,68 @@
+.form-group {
+    position: relative;
+}
+
+.form-group .fa-eye,
+.form-group .fa-eye-slash {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+    font-size: 1rem;
+    z-index: 1;
+}
+
+.form-group .fa-eye:hover,
+.form-group .fa-eye-slash:hover {
+    color: var(--purple);
+}
+
+.error-message {
+    background: #fee;
+    color: #c33;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.form-options label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-options a {
+    color: var(--purple);
+    text-decoration: none;
+}
+
+.submit-button.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #eee;
+    color: #666;
+}
+
+.login-footer a {
+    color: var(--purple);
+    text-decoration: none;
+    font-weight: 500;
+}
