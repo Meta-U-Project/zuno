@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Loading from "../components/Loading";
-import './SignUpPage.css'
+import "./SignUpPage.css";
+import Navbar from "../../components/Navbar";
+import Loading from "../../components/Loading";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { PAGES } from "../../utils/constants";
 
 const SignUpPage = () => {
     const navigate = useNavigate();
@@ -14,6 +17,11 @@ const SignUpPage = () => {
         school: '',
         password: ''
     });
+
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const togglePasswordVisibility = () => {
+        setPasswordVisible(!passwordVisible);
+    };
 
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +41,7 @@ const SignUpPage = () => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/register', {
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -62,7 +70,7 @@ const SignUpPage = () => {
             setIsRedirecting(true);
 
             setTimeout(() => {
-                navigate('/login');
+                navigate(PAGES.LOGIN.path);
             }, 2000);
 
         } catch (err) {
@@ -89,15 +97,7 @@ const SignUpPage = () => {
                     <div className="contact-form-container">
                         <form className="contact-form" onSubmit={handleSubmit}>
                             {error && (
-                                <div className="error-message" style={{
-                                    background: '#fee',
-                                    color: '#c33',
-                                    padding: '1rem',
-                                    borderRadius: '8px',
-                                    marginBottom: '1rem',
-                                    textAlign: 'center',
-                                    fontSize: '0.9rem'
-                                }}>
+                                <div className="error-message">
                                     {error}
                                 </div>
                             )}
@@ -170,7 +170,7 @@ const SignUpPage = () => {
                             <div className="form-group">
                                 <label htmlFor="password">Password</label>
                                 <input
-                                    type="password"
+                                    type={passwordVisible ? 'text' : 'password'}
                                     id="password"
                                     name="password"
                                     value={formData.password}
@@ -178,15 +178,14 @@ const SignUpPage = () => {
                                     required
                                     placeholder="Enter your password"
                                 />
+                                <FontAwesomeIcon
+                                    icon={passwordVisible ? faEyeSlash : faEye}
+                                    onClick={togglePasswordVisibility}
+                                />
                             </div>
 
-                            <div className="form-options" style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                marginBottom: '1rem',
-                                fontSize: '0.9rem'
-                            }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="form-options">
+                                <label>
                                     <input type="checkbox" required />
                                     I agree to the Terms of Service and Privacy Policy
                                 </label>
@@ -194,24 +193,14 @@ const SignUpPage = () => {
 
                             <button
                                 type="submit"
-                                className="submit-button"
+                                className={`submit-button ${isLoading ? 'loading' : ''}`}
                                 disabled={isLoading}
-                                style={{
-                                    opacity: isLoading ? 0.7 : 1,
-                                    cursor: isLoading ? 'not-allowed' : 'pointer'
-                                }}
                             >
                                 {isLoading ? 'Creating Account...' : 'Sign Up'}
                             </button>
 
-                            <div className="login-footer" style={{
-                                textAlign: 'center',
-                                marginTop: '2rem',
-                                paddingTop: '2rem',
-                                borderTop: '1px solid #eee',
-                                color: '#666'
-                            }}>
-                                <p>Already have an account? <a href="/login" style={{ color: 'var(--purple)', textDecoration: 'none', fontWeight: '500' }}>Log in here</a></p>
+                            <div className="login-footer">
+                                <p>Already have an account? <a href={PAGES.LOGIN.path}>Log in here</a></p>
                             </div>
                         </form>
                     </div>

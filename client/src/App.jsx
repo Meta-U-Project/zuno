@@ -1,9 +1,11 @@
 import React from 'react';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import SignUpPage from './pages/SignUpPage';
+import HomePage from './pages/home/HomePage';
+import LoginPage from './pages/login/LoginPage';
+import SignUpPage from './pages/signup/SignUpPage';
 import Dashboard from './pages/dashboard/Dashboard';
 import { Routes, Route } from 'react-router-dom';
+import ResetPassword from './pages/resetpassword/ResetPassword';
+import NewPasswordPage from './pages/newpassword/NewPasswordPage';
 
 const App = () => {
   return (
@@ -13,6 +15,8 @@ const App = () => {
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/signup" element={<SignUpPage/>}/>
         <Route path="/dashboard" element={<Dashboard/>}/>
+        <Route path="/forgot-password" element={<ResetPassword />} />
+        <Route path="/reset-password/:id/:token" element={<NewPasswordPage />} />
       </Routes>
     </div>
   );

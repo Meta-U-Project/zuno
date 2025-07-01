@@ -1,0 +1,50 @@
+.contact-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    text-align: center;
+}
+
+.dashboard-placeholder {
+    background: white;
+    padding: 3rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f0f0f0;
+    max-width: 600px;
+}
+
+.dashboard-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.dashboard-title {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.dashboard-description {
+    color: #666;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+.logout {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: var(--main-gradient);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
