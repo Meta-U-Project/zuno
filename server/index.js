@@ -11,6 +11,9 @@ app.use(cookieParser());
 const authRoutes = require('./src/routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+const googleRoutes = require('./src/routes/googleRoutes');
+app.use('/api/google', googleRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Zuno backend running on port ${process.env.PORT}`);
 });

@@ -25,6 +25,10 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt @default(now())
 
+  googleAccessToken String?
+  googleRefreshToken String?
+  googleTokenExpiry DateTime?
+
   courses         Course[]         @relation("UserCourses")
   tasks           Task[]           @relation("UserTasks")
   calendarEvents  CalendarEvent[]  @relation("UserCalendarEvents")
