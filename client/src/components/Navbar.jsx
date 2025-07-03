@@ -45,10 +45,6 @@ const Navbar = () => {
                         <li className='navItem'>
                             <a href={isHomePage ? "#contact" : "/#contact"} className='navLink' onClick={(e) => { e.preventDefault(); handleNavigation('contact'); }}>Contact</a>
                         </li>
-                        {/* for testing of connect page, to be removed. */}
-                        <li className='navItem'>
-                            <a href="/connect" className='navLink'>Connect</a>
-                        </li>
                     </div>
                     <li className='navItem'>
                         <button className='signUpButton' onClick={signup}>Sign Up</button>

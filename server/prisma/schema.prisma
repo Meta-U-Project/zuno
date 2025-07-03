@@ -29,6 +29,9 @@ model User {
   googleRefreshToken String?
   googleTokenExpiry DateTime?
 
+  canvasDomain    String?
+  canvasAccessToken String?
+
   courses         Course[]         @relation("UserCourses")
   tasks           Task[]           @relation("UserTasks")
   calendarEvents  CalendarEvent[]  @relation("UserCalendarEvents")

@@ -14,6 +14,7 @@ const LoginPage = () => {
         password: ''
     });
 
+
     const [passwordVisible, setPasswordVisible] = useState(false);
     const togglePasswordVisibility = () => {
         setPasswordVisible(!passwordVisible);
@@ -58,7 +59,11 @@ const LoginPage = () => {
             setIsRedirecting(true);
 
             setTimeout(() => {
-                navigate(PAGES.DASHBOARD.path);
+                if (data.needsIntegration) {
+                    navigate('/connect');
+                } else {
+                    navigate(PAGES.DASHBOARD.path);
+                }
             }, 2000);
 
         } catch (err) {
@@ -71,7 +76,7 @@ const LoginPage = () => {
 
     return (
         <div>
-            {isRedirecting && <Loading message="Login successful! Redirecting to dashboard..." />}
+            {isRedirecting && <Loading message="Login successful! Redirecting to connect your accounts..." />}
             <Navbar />
             <div className="signup">
                 <div className="signup-header-container">

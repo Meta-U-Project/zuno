@@ -32,7 +32,7 @@ const callback = async (req, res) => {
         const { tokens } = await oauth2Client.getToken(code);
         const userId = state;
 
-        await prisma.user.update({
+        const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
                 googleAccessToken: tokens.access_token,
@@ -40,12 +40,22 @@ const callback = async (req, res) => {
                 googleTokenExpiry: new Date(tokens.expiry_date)
             }
         });
-        res.redirect(`${process.env.CLIENT_URL}/dashboard?google=connected`);
-    } catch (error) {
-        console.log("Goolgle callback error:", error);
-        res.status(500).send("Google OAuth Failed.");
 
-}};
+        // Check if Canvas is also connected
+        const canvasConnected = !!updatedUser.canvasAccessToken;
+
+        if (canvasConnected) {
+            // Both integrations complete, redirect to dashboard
+            res.redirect(`${process.env.CLIENT_URL}/dashboard?google=connected`);
+        } else {
+            // Still need Canvas, redirect to connect page
+            res.redirect(`${process.env.CLIENT_URL}/connect?google=connected`);
+        }
+    } catch (error) {
+        console.log("Google callback error:", error);
+        res.status(500).send("Google OAuth Failed.");
+    }
+};
 
 module.exports = {
     auth,

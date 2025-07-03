@@ -12,6 +12,16 @@ const register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await createUser(firstName, lastName, email, phone, school, hashed);
+
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
+    });
+
     res.status(201).json({
         message: 'User registered',
         user: {
@@ -40,7 +50,20 @@ const login = async (req, res) => {
         maxAge: 24 * 60 * 60 * 1000
     });
 
-    res.json({ message: 'Logged in', user: { id: user.id, email: user.email } });
+    // Check if user has both integrations
+    const googleConnected = !!user.googleAccessToken;
+    const canvasConnected = !!user.canvasAccessToken;
+    const needsIntegration = !googleConnected || !canvasConnected;
+
+    res.json({
+        message: 'Logged in',
+        user: { id: user.id, email: user.email },
+        needsIntegration,
+        integrations: {
+            googleConnected,
+            canvasConnected
+        }
+    });
 };
 
 const forgotPassword = async (req, res) => {

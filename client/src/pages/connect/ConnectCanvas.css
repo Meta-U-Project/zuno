@@ -1,0 +1,129 @@
+.canvas-connect-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+.canvas-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1rem;
+    background: var(--main-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.canvas-description {
+    font-size: 1.1rem;
+    color: #666;
+    text-align: center;
+    margin-bottom: 3rem;
+    line-height: 1.6;
+}
+
+.canvas-instructions {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    margin-bottom: 2rem;
+}
+
+.canvas-instructions h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    background: var(--main-gradient);
+    margin-bottom: 1rem;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.canvas-instructions ol {
+    margin-left: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.canvas-instructions li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+    color: #333;
+}
+
+.canvas-instructions code {
+    background: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.9rem;
+    color: var(--purple);
+}
+
+.canvas-instructions strong {
+    background: var(--main-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+}
+
+.canvas-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+}
+
+.canvas-form label {
+    display: block;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.canvas-form input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    outline: none;
+    margin-bottom: 1.5rem;
+    box-sizing: border-box;
+}
+
+.canvas-form input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(119, 53, 226, 0.1);
+}
+
+.canvas-form input::placeholder {
+    color: #999;
+}
+
+.canvas-form button {
+    width: 100%;
+    padding: 1rem 2rem;
+    background: var(--main-gradient);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.canvas-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(119, 53, 226, 0.3);
+}

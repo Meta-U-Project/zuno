@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { auth, callback } = require('../controllers/googleController');
+const { saveCanvasCredentials } = require('../controllers/canvasController');
 const { verifyToken } = require('../middleware/authMiddleware');
-router.get('/auth', verifyToken, auth);
-router.get('/callback', callback);
+
+router.post('/connect', verifyToken, saveCanvasCredentials)
 
 module.exports = router;
