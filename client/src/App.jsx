@@ -6,6 +6,8 @@ import Dashboard from './pages/dashboard/Dashboard';
 import { Routes, Route } from 'react-router-dom';
 import ResetPassword from './pages/resetpassword/ResetPassword';
 import NewPasswordPage from './pages/newpassword/NewPasswordPage';
+import ConnectPage from './pages/connect/Connect';
+import CanvasAuthPage from './pages/connect/CanvasAuthPage';
 
 const App = () => {
   return (
@@ -15,6 +17,8 @@ const App = () => {
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/signup" element={<SignUpPage/>}/>
         <Route path="/dashboard" element={<Dashboard/>}/>
+        <Route path="/connect" element={<ConnectPage/>}/>
+        <Route path="/canvas-auth" element={<CanvasAuthPage/>}/>
         <Route path="/forgot-password" element={<ResetPassword />} />
         <Route path="/reset-password/:id/:token" element={<NewPasswordPage />} />
       </Routes>

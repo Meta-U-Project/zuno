@@ -70,7 +70,7 @@ const SignUpPage = () => {
             setIsRedirecting(true);
 
             setTimeout(() => {
-                navigate(PAGES.LOGIN.path);
+                navigate('/login');
             }, 2000);
 
         } catch (err) {

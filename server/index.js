@@ -11,10 +11,15 @@ app.use(cookieParser());
 const authRoutes = require('./src/routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Zuno backend running on port ${process.env.PORT}`);
-});
-
+const googleRoutes = require('./src/routes/googleRoutes');
+app.use('/api/google', googleRoutes);
 
 const userRoutes = require('./src/routes/userRoutes');
 app.use('/api/user', userRoutes);
+
+const canvasRoutes = require('./src/routes/canvasRoutes');
+app.use('/api/canvas', canvasRoutes);
+
+app.listen(process.env.PORT, () => {
+  console.log(`Zuno backend running on port ${process.env.PORT}`);
+});
