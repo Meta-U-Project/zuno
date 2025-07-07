@@ -86,4 +86,54 @@ const fetchAssignments = async (req, res) => {
     }
 };
 
-module.exports = { saveCanvasCredentials, fetchCourses, fetchAssignments };
+const fetchCalendarEventsFromAssignments = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const user = await findUserByEmail(email);
+
+        if (!user || !user.canvasAccessToken || !user.canvasDomain) {
+            return res.status(400).json({ error: 'User not found or Canvas not connected' });
+        }
+
+        const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
+        const coursesRes = await canvas.get('/courses?per_page=100');
+        const courses = coursesRes.data;
+
+        const calendarEvents = [];
+
+        for (const course of courses) {
+            try {
+                const assignmentsRes = await canvas.get(`/courses/${course.id}/assignments?per_page=100`);
+                const assignments = assignmentsRes.data;
+
+                assignments.forEach((assignment) => {
+                    if (assignment.due_at) {
+                        calendarEvents.push({
+                            id: assignment.id,
+                            title: assignment.name,
+                            date: assignment.due_at,
+                            type: 'assignment',
+                            courseId: course.id,
+                            courseName: course.name,
+                            url: assignment.html_url,
+                        });
+                    }
+                });
+            } catch (err) {
+                console.warn(`Error fetching assignments for course ${course.id}: ${err.message}`);
+            }
+        }
+
+        res.status(200).json(calendarEvents);
+    } catch (err) {
+        console.error('Error generating calendar events:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+module.exports = { saveCanvasCredentials, fetchCourses, fetchAssignments, fetchCalendarEventsFromAssignments };
