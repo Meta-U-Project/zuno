@@ -136,4 +136,54 @@ const fetchCalendarEventsFromAssignments = async (req, res) => {
     }
 };
 
-module.exports = { saveCanvasCredentials, fetchCourses, fetchAssignments, fetchCalendarEventsFromAssignments };
+const fetchAnnouncements = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const user = await findUserByEmail(email);
+
+        if (!user || !user.canvasAccessToken || !user.canvasDomain) {
+            return res.status(400).json({ error: 'User not found or Canvas not connected' });
+        }
+
+        const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
+        const coursesRes = await canvas.get('/courses?per_page=100');
+        const courses = coursesRes.data;
+
+        const announcements = [];
+
+        for (const course of courses) {
+            try {
+                const courseAnnouncements = await canvas.get(
+                    `/courses/${course.id}/discussion_topics`,
+                    {
+                        params: {
+                            only_announcements: true,
+                            per_page: 100
+                        }
+                    }
+                );
+                const withCourseInfo = courseAnnouncements.data.map(a => ({
+                    ...a,
+                    courseId: course.id,
+                    courseName: course.name
+                }));
+                announcements.push(...withCourseInfo);
+            } catch (err) {
+                console.warn(`Error fetching announcements for course ${course.id}: ${err.message}`);
+            }
+        }
+
+        res.status(200).json(announcements);
+    } catch (err) {
+        console.error('Error generating announcements:', err.message);
+        res.status(500).json({ error: 'Something went wrong fetching announcements' });
+    }
+};
+
+
+module.exports = { saveCanvasCredentials, fetchCourses, fetchAssignments, fetchCalendarEventsFromAssignments, fetchAnnouncements };
