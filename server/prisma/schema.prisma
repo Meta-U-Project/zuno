@@ -87,7 +87,6 @@ model Course {
   user            User     @relation("UserCourses", fields: [userId], references: [id])
   userId          String
   course_name     String
-  difficulty_level DifficultyLevel
   course_code     String
   instructor_name String
   term            String

@@ -1,7 +1,6 @@
 const { PrismaClient } = require('../generated/prisma');
+const { syncCanvasData } = require('../utils/syncCanvasData');
 const prisma = new PrismaClient();
-const getCanvasApiClient = require('../utils/canvasApi');
-const { findUserByEmail } = require('../models/userService')
 
 const saveCanvasCredentials = async (req, res) => {
     const { domain, accessToken } = req.body;
@@ -16,6 +15,8 @@ const saveCanvasCredentials = async (req, res) => {
         });
 
         const googleConnected = !!updatedUser.googleAccessToken;
+
+        await syncCanvasData(updatedUser);
 
         res.status(200).json({
             message: 'Canvas credentials saved successfully',
@@ -33,17 +34,10 @@ const saveCanvasCredentials = async (req, res) => {
 
 const fetchCourses = async (req, res) => {
     try {
-        const { email } = req.body;
-        const user = await findUserByEmail(email);
-
-        if (!user.canvasAccessToken || !user || !user.canvasDomain) {
-            return res.status(400).json({ error: 'User not found or canvas not connected' });
-        }
-
-        const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
-        const response = await canvas.get('/courses?per_page=100');
-
-        res.status(200).json(response.data);
+        const courses = await prisma.course.findMany({
+            where: { userId: req.user.id }
+        });
+        res.status(200).json(courses);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Something went wrong fetching courses' });
@@ -52,156 +46,79 @@ const fetchCourses = async (req, res) => {
 
 const fetchAssignments = async (req, res) => {
     try {
-        const { email } = req.body;
-        const user = await findUserByEmail(email);
+        const tasks = await prisma.task.findMany({
+            where: { userId: req.user.id },
+            include: { course: true }
+        });
 
-        if (!user || !user.canvasAccessToken || !user.canvasDomain) {
-            return res.status(400).json({ error: 'User not found or canvas not connected' });
-        }
-
-        const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
-        const courses = await canvas.get('/courses?per_page=100');
-
-        const assignments = [];
         const analytics = {
-            totalAssignments: 0,
-            submittedOnTime: 0,
+            totalAssignments: tasks.length,
+            submittedOnTime: 0, // to be updated with better logic
             submittedLate: 0,
             missing: 0
         };
 
-        for (const course of courses.data) {
-            try {
-                const courseAssignments = await canvas.get(`/courses/${course.id}/assignments?per_page=100`);
-                for (const assignment of courseAssignments.data) {
-                    assignments.push({
-                        ...assignment,
-                        courseId: course.id,
-                        courseName: course.name
-                    });
-
-                    analytics.totalAssignments++;
-
-                    if (assignment.has_submitted_submissions) {
-                        analytics.submittedOnTime++;
-                    } else {
-                        if (assignment.due_at && new Date(assignment.due_at) < new Date()) {
-                            analytics.missing++;
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn(`Error fetching assignments for course ${course.id}: ${err.message}`);
+        const now = new Date();
+        tasks.forEach(task => {
+            if (!task.completed && new Date(task.deadline) < now) {
+                analytics.missing++;
             }
-        }
+        });
 
-        res.status(200).json({ assignments, analytics });
-
+        res.status(200).json({ assignments: tasks, analytics });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Something went wrong fetching assignments' });
     }
 };
 
-
 const fetchCalendarEventsFromAssignments = async (req, res) => {
     try {
-        const { email } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
-        }
-
-        const user = await findUserByEmail(email);
-
-        if (!user || !user.canvasAccessToken || !user.canvasDomain) {
-            return res.status(400).json({ error: 'User not found or Canvas not connected' });
-        }
-
-        const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
-        const coursesRes = await canvas.get('/courses?per_page=100');
-        const courses = coursesRes.data;
-
-        const calendarEvents = [];
-
-        for (const course of courses) {
-            try {
-                const assignmentsRes = await canvas.get(`/courses/${course.id}/assignments?per_page=100`);
-                const assignments = assignmentsRes.data;
-
-                assignments.forEach((assignment) => {
-                    if (assignment.due_at) {
-                        calendarEvents.push({
-                            id: assignment.id,
-                            title: assignment.name,
-                            date: assignment.due_at,
-                            type: 'assignment',
-                            courseId: course.id,
-                            courseName: course.name,
-                            url: assignment.html_url,
-                        });
+        const calendarEvents = await prisma.calendarEvent.findMany({
+            where: { userId: req.user.id },
+            include: {
+                task: {
+                    include: {
+                        course: true
                     }
-                });
-            } catch (err) {
-                console.warn(`Error fetching assignments for course ${course.id}: ${err.message}`);
+                }
             }
-        }
+        });
 
-        res.status(200).json(calendarEvents);
+        const transformedEvents = calendarEvents.map(event => ({
+            id: event.id,
+            title: event.task.title,
+            date: event.start_time,
+            type: 'assignment',
+            courseId: event.task.courseId,
+            courseName: event.task.course.course_name,
+            url: ''
+        }));
+
+        res.status(200).json(transformedEvents);
     } catch (err) {
-        console.error('Error generating calendar events:', err.message);
+        console.error('Error fetching calendar events:', err.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 const fetchAnnouncements = async (req, res) => {
     try {
-        const { email } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
-        }
-
-        const user = await findUserByEmail(email);
-
-        if (!user || !user.canvasAccessToken || !user.canvasDomain) {
-            return res.status(400).json({ error: 'User not found or Canvas not connected' });
-        }
-
-        const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
-        const coursesRes = await canvas.get('/courses?per_page=100');
-        const courses = coursesRes.data;
-
-        const announcements = [];
-
-        for (const course of courses) {
-            try {
-                const courseAnnouncements = await canvas.get(
-                    `/courses/${course.id}/discussion_topics`,
-                    {
-                        params: {
-                            only_announcements: true,
-                            per_page: 100
-                        }
-                    }
-                );
-                const withCourseInfo = courseAnnouncements.data.map(a => ({
-                    ...a,
-                    courseId: course.id,
-                    courseName: course.name
-                }));
-                announcements.push(...withCourseInfo);
-            } catch (err) {
-                console.warn(`Error fetching announcements for course ${course.id}: ${err.message}`);
-            }
-        }
+        const announcements = await prisma.announcement.findMany({
+            where: { userId: req.user.id }
+        });
 
         res.status(200).json(announcements);
     } catch (err) {
-        console.error('Error generating announcements:', err.message);
+        console.error('Error fetching announcements:', err.message);
         res.status(500).json({ error: 'Something went wrong fetching announcements' });
     }
 };
 
-
-module.exports = { saveCanvasCredentials, fetchCourses, fetchAssignments, fetchCalendarEventsFromAssignments, fetchAnnouncements };
+module.exports = {
+    saveCanvasCredentials,
+    fetchCourses,
+    fetchAssignments,
+    fetchCalendarEventsFromAssignments,
+    fetchAnnouncements
+};
