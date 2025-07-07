@@ -15,7 +15,6 @@ const saveCanvasCredentials = async (req, res) => {
             }
         });
 
-        // Check if Google is also connected
         const googleConnected = !!updatedUser.googleAccessToken;
 
         res.status(200).json({
@@ -64,27 +63,46 @@ const fetchAssignments = async (req, res) => {
         const courses = await canvas.get('/courses?per_page=100');
 
         const assignments = [];
+        const analytics = {
+            totalAssignments: 0,
+            submittedOnTime: 0,
+            submittedLate: 0,
+            missing: 0
+        };
 
         for (const course of courses.data) {
             try {
                 const courseAssignments = await canvas.get(`/courses/${course.id}/assignments?per_page=100`);
-                assignments.push(...courseAssignments.data.map(a => ({
-                    ...a,
-                    courseId: course.id,
-                    courseName: course.name
-                })));
+                for (const assignment of courseAssignments.data) {
+                    assignments.push({
+                        ...assignment,
+                        courseId: course.id,
+                        courseName: course.name
+                    });
+
+                    analytics.totalAssignments++;
+
+                    if (assignment.has_submitted_submissions) {
+                        analytics.submittedOnTime++;
+                    } else {
+                        if (assignment.due_at && new Date(assignment.due_at) < new Date()) {
+                            analytics.missing++;
+                        }
+                    }
+                }
             } catch (err) {
                 console.warn(`Error fetching assignments for course ${course.id}: ${err.message}`);
             }
         }
 
-        res.status(200).json(assignments);
+        res.status(200).json({ assignments, analytics });
 
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Something went wrong fetching assignments' });
     }
 };
+
 
 const fetchCalendarEventsFromAssignments = async (req, res) => {
     try {
