@@ -103,17 +103,45 @@ async function syncCanvasData(user) {
             for (const announcement of announcements) {
                 await prisma.announcement.upsert({
                     where: { id: announcement.id.toString() },
-                    update: { title: announcement.title },
+                    update: {
+                        title: announcement.title,
+                        message: announcement.message,
+                        postedAt: new Date(announcement.posted_at),
+                    },
                     create: {
                         id: announcement.id.toString(),
                         userId,
                         courseId: course.id.toString(),
                         title: announcement.title,
                         message: announcement.message,
+                        courseName: course.name,
+                        postedAt: new Date(announcement.posted_at),
                     }
                 });
             }
         }
+
+        // Sync analytics
+        const tasks = await prisma.task.findMany({
+            where: { userId: user.id }
+        });
+        const tasksCompleted = tasks.filter(task => task.completed).length;
+        const now = new Date();
+
+        await prisma.analytics.upsert({
+            where: { userId: user.id },
+            update: {
+                tasks_completed: tasksCompleted,
+                last_active: now
+            },
+            create: {
+                userId: user.id,
+                tasks_completed: tasksCompleted,
+                last_active: now,
+                total_study_hours: 0,
+                engagement_score: 0
+            }
+        });
 
         console.log(`Canvas sync complete for user: ${user.email}`);
     } catch (err) {

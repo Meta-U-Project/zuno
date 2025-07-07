@@ -50,21 +50,9 @@ const fetchAssignments = async (req, res) => {
             where: { userId: req.user.id },
             include: { course: true }
         });
-
-        const analytics = {
-            totalAssignments: tasks.length,
-            submittedOnTime: 0, // to be updated with better logic
-            submittedLate: 0,
-            missing: 0
-        };
-
-        const now = new Date();
-        tasks.forEach(task => {
-            if (!task.completed && new Date(task.deadline) < now) {
-                analytics.missing++;
-            }
+        const analytics = await prisma.analytics.findUnique({
+            where: { userId: req.user.id }
         });
-
         res.status(200).json({ assignments: tasks, analytics });
     } catch (err) {
         console.error(err);
