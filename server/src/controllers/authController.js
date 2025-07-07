@@ -4,6 +4,7 @@ const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 const { createUser, findUserByEmail } = require('../models/userService');
 const {createPasswordResetToken, createPasswordResetUrl, transporter, passwordResetTemplate, passwordResetConfirmationTemplate, verifyResetToken} = require('../middleware/authMiddleware');
+const { syncCanvasData } = require('../utils/syncCanvasData');
 
 const register = async (req, res) => {
     const { firstName, lastName, email, phone, school, password } = req.body;
@@ -50,10 +51,15 @@ const login = async (req, res) => {
         maxAge: 24 * 60 * 60 * 1000
     });
 
-    // Check if user has both integrations
     const googleConnected = !!user.googleAccessToken;
     const canvasConnected = !!user.canvasAccessToken;
     const needsIntegration = !googleConnected || !canvasConnected;
+
+    if (canvasConnected && user.canvasDomain) {
+        syncCanvasData(user).catch(err => {
+            console.error(`Canvas sync error for user ${user.email} during login:`, err.message);
+        });
+    }
 
     res.json({
         message: 'Logged in',

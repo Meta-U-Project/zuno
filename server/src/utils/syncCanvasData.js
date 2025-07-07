@@ -3,6 +3,11 @@ const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 
 async function syncCanvasData(user) {
+    if (!user.canvasAccessToken || !user.canvasDomain) {
+        console.warn('No Canvas access token or domain for user:', user?.email);
+        return;
+    }
+
     const canvas = getCanvasApiClient(user.canvasAccessToken, user.canvasDomain);
     const userId = user.id;
 
@@ -57,23 +62,35 @@ async function syncCanvasData(user) {
                 });
 
                 if (assignment.due_at) {
-                    await prisma.calendarEvent.upsert({
-                        where: { taskId: task.id },
-                        update: {
-                            start_time: new Date(assignment.due_at),
-                            end_time: new Date(assignment.due_at),
-                        },
-                        create: {
-                            userId,
-                            taskId: task.id,
-                            start_time: new Date(assignment.due_at),
-                            end_time: new Date(assignment.due_at),
-                            type: 'TASK_BLOCK',
-                            is_group_event: false,
-                            location: 'Canvas',
-                            createdById: userId,
+                    const existingEvent = await prisma.calendarEvent.findFirst({
+                        where: {
+                            userId: user.id,
+                            taskId: String(assignment.id),
                         }
                     });
+
+                    if (existingEvent) {
+                        await prisma.calendarEvent.update({
+                            where: { id: existingEvent.id },
+                            data: {
+                                start_time: new Date(assignment.due_at),
+                                end_time: new Date(assignment.due_at),
+                            }
+                            });
+                        } else {
+                            await prisma.calendarEvent.create({
+                                data: {
+                                    userId: user.id,
+                                    taskId: String(assignment.id),
+                                    start_time: new Date(assignment.due_at),
+                                    end_time: new Date(assignment.due_at),
+                                    type: 'TASK_BLOCK',
+                                    is_group_event: false,
+                                    location: 'Canvas',
+                                    createdById: user.id
+                                }
+                            });
+                        }
                 }
             }
         }
