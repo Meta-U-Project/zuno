@@ -23,6 +23,9 @@ app.use('/api/canvas', canvasRoutes);
 const syncCanvasScheduler = require('./src/cron/syncCanvasScheduler')
 syncCanvasScheduler();
 
+const taskRoutes = require('./src/routes/taskRoutes');
+app.use('/api/task', taskRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Zuno backend running on port ${process.env.PORT}`);
 });
