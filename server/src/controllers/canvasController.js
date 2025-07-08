@@ -1,4 +1,5 @@
 const { PrismaClient } = require('../generated/prisma');
+const { syncCanvasData } = require('../utils/syncCanvasData');
 const prisma = new PrismaClient();
 
 const saveCanvasCredentials = async (req, res) => {
@@ -13,8 +14,9 @@ const saveCanvasCredentials = async (req, res) => {
             }
         });
 
-        // Check if Google is also connected
         const googleConnected = !!updatedUser.googleAccessToken;
+
+        await syncCanvasData(updatedUser);
 
         res.status(200).json({
             message: 'Canvas credentials saved successfully',
@@ -30,4 +32,81 @@ const saveCanvasCredentials = async (req, res) => {
     }
 };
 
-module.exports = { saveCanvasCredentials };
+const fetchCourses = async (req, res) => {
+    try {
+        const courses = await prisma.course.findMany({
+            where: { userId: req.user.id }
+        });
+        res.status(200).json(courses);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Something went wrong fetching courses' });
+    }
+};
+
+const fetchAssignments = async (req, res) => {
+    try {
+        const tasks = await prisma.task.findMany({
+            where: { userId: req.user.id },
+            include: { course: true }
+        });
+        const analytics = await prisma.analytics.findUnique({
+            where: { userId: req.user.id }
+        });
+        res.status(200).json({ assignments: tasks, analytics });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Something went wrong fetching assignments' });
+    }
+};
+
+const fetchCalendarEventsFromAssignments = async (req, res) => {
+    try {
+        const calendarEvents = await prisma.calendarEvent.findMany({
+            where: { userId: req.user.id },
+            include: {
+                task: {
+                    include: {
+                        course: true
+                    }
+                }
+            }
+        });
+
+        const transformedEvents = calendarEvents.map(event => ({
+            id: event.id,
+            title: event.task.title,
+            date: event.start_time,
+            type: 'assignment',
+            courseId: event.task.courseId,
+            courseName: event.task.course.course_name,
+            url: ''
+        }));
+
+        res.status(200).json(transformedEvents);
+    } catch (err) {
+        console.error('Error fetching calendar events:', err.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const fetchAnnouncements = async (req, res) => {
+    try {
+        const announcements = await prisma.announcement.findMany({
+            where: { userId: req.user.id }
+        });
+
+        res.status(200).json(announcements);
+    } catch (err) {
+        console.error('Error fetching announcements:', err.message);
+        res.status(500).json({ error: 'Something went wrong fetching announcements' });
+    }
+};
+
+module.exports = {
+    saveCanvasCredentials,
+    fetchCourses,
+    fetchAssignments,
+    fetchCalendarEventsFromAssignments,
+    fetchAnnouncements
+};
