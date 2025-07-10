@@ -1,0 +1,158 @@
+.analytics-card {
+    position: relative;
+}
+
+.wide-card {
+    grid-column: span 2;
+}
+
+.analytics-main {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    height: 100%;
+}
+
+.score-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+}
+
+.score-circle {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+.score-progress {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.score-inner {
+    width: 80px;
+    height: 80px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.score-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d3748;
+    font-family: "Poppins", sans-serif;
+    line-height: 1;
+}
+
+.score-label {
+    font-size: 0.5rem;
+    color: #718096;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    text-align: center;
+    margin-top: 0.15rem;
+}
+
+.score-info {
+    text-align: center;
+}
+
+.score-info h4 {
+    color: #2d3748;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    font-family: "Poppins", sans-serif;
+}
+
+.score-info p {
+    color: #718096;
+    font-size: 0.7rem;
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    line-height: 1.3;
+}
+
+.metrics-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    justify-content: space-between;
+}
+
+
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    color: #2d3748;
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+}
+
+.metric-percentage {
+    color: var(--purple);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
+}
+
+.metric-bar {
+    width: 100%;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.35rem;
+}
+
+.metric-progress {
+    height: 100%;
+    background: var(--purple);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.metric-progress.zuno-progress {
+    background: var(--main-gradient);
+}
+
+.metric-progress.weekly-progress {
+    background: linear-gradient(90deg, var(--purple), var(--blue));
+}
+
+.metric-detail {
+    color: #718096;
+    font-size: 0.65rem;
+    font-family: "Poppins", sans-serif;
+}
+
+.analytics-card .loading-state {
+    padding: 3rem 2rem;
+}
+
+.analytics-card .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+}
