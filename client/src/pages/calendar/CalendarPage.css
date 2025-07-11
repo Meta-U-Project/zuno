@@ -11,6 +11,7 @@
     align-items: center;
     margin-bottom: 2rem;
     flex-wrap: wrap;
+    margin-top: 1rem;
     gap: 1rem;
 }
 
@@ -20,6 +21,20 @@
     gap: 1rem;
 }
 
+.calendar-header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.calendar-current-date h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--blue);
+    font-family: "Poppins", sans-serif;
+}
+
 .calendar-nav-arrows {
     display: flex;
     gap: 0.5rem;
@@ -27,8 +42,8 @@
 
 .calendar-nav-button {
     background: white;
-    border: 2px solid transparent;
-    background: linear-gradient(white, white) padding-box, var(--main-gradient) border-box;
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     cursor: pointer;
@@ -38,7 +53,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .calendar-nav-button:hover {
@@ -75,11 +89,10 @@
 .calendar-view-switcher {
     display: flex;
     background: white;
-    border: 2px solid transparent;
-    background: linear-gradient(white, white) padding-box, var(--main-gradient) border-box;
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .calendar-view-button {
@@ -96,13 +109,13 @@
 }
 
 .calendar-view-button:hover {
-    background: rgba(119, 53, 226, 0.1);
+    background: rgba(162, 133, 209, 0.1);
     color: var(--purple);
 }
 
 .calendar-view-button.active {
-    background: var(--main-gradient);
-    color: white;
+    background: rgba(119, 53, 226, 0.1);
+    color: var(--purple);
 }
 
 .calendar-view-button:not(:last-child)::after {
@@ -122,8 +135,8 @@
 /* Calendar Container */
 .calendar-container {
     background: white;
-    border: 2px solid transparent;
-    background: linear-gradient(white, white) padding-box, var(--main-gradient) border-box;
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
     border-radius: 16px;
     padding: 2rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -267,39 +280,34 @@
 }
 
 /* Add Event Button */
-.add-event-button {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: var(--main-gradient);
-    color: white;
+.calendar-add-event-button {
+    color: var(--purple);
     border: none;
-    border-radius: 50px;
-    padding: 1rem 2rem;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
     font-family: "Poppins", sans-serif;
-    font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.9rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 4px 20px rgba(119, 53, 226, 0.3);
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
     transition: all 0.3s ease;
-    z-index: 1000;
 }
 
-.add-event-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(119, 53, 226, 0.4);
+.calendar-add-event-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(119, 53, 226, 0.4);
 }
 
-.add-event-button:active {
+.calendar-add-event-button:active {
     transform: translateY(-1px);
 }
 
-.add-event-button svg {
-    width: 20px;
-    height: 20px;
+.calendar-add-event-button svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* Responsive Design */
@@ -316,10 +324,16 @@
 
     .calendar-nav {
         justify-content: center;
+        flex-wrap: wrap;
     }
 
-    .calendar-title h1 {
-        font-size: 2rem;
+    .calendar-header-right {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .calendar-current-date h2 {
+        font-size: 1.25rem;
         text-align: center;
     }
 
@@ -331,9 +345,7 @@
         padding: 1rem;
     }
 
-    .add-event-button {
-        bottom: 1rem;
-        right: 1rem;
+    .calendar-add-event-button {
         padding: 0.75rem 1.5rem;
         font-size: 0.9rem;
     }
@@ -354,6 +366,11 @@
         gap: 1rem;
     }
 
+    .calendar-nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
     .calendar-nav-button {
         padding: 0.5rem 1rem;
         font-size: 0.8rem;
@@ -368,14 +385,13 @@
         font-size: 0.8rem;
     }
 
-    .calendar-title h1 {
-        font-size: 1.75rem;
+    .calendar-current-date h2 {
+        font-size: 1.1rem;
     }
 
-    .add-event-button {
+    .calendar-add-event-button {
         padding: 0.75rem 1.25rem;
         font-size: 0.8rem;
-        border-radius: 40px;
     }
 }
 
