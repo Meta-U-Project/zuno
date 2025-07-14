@@ -82,6 +82,7 @@ async function syncCanvasData(user) {
                         description: assignment.description || '',
                         priority: priorityScore,
                         studyTime,
+                        requiresStudyBlock: true,
                         deadline: new Date(assignment.due_at),
                     }
 
@@ -169,6 +170,7 @@ async function syncCanvasData(user) {
                                     description: discussion.message || '',
                                     priority: priorityScore,
                                     studyTime,
+                                    requiresStudyBlock: true,
                                     deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
                                 }
                             });

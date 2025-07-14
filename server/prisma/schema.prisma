@@ -32,6 +32,8 @@ model User {
   canvasDomain    String?
   canvasAccessToken String?
 
+  preferredStudyTime PreferredStudyTime[]
+
   courses         Course[]         @relation("UserCourses")
   tasks           Task[]           @relation("UserTasks")
   calendarEvents  CalendarEvent[]  @relation("UserCalendarEvents")
@@ -106,6 +108,7 @@ model Task {
   deadline        DateTime?
   studyTime       Float?
   completed       Boolean  @default(false)
+  requiresStudyBlock Boolean @default(false)
   calendarEvents  CalendarEvent[]
 
   createdAt       DateTime @default(now())
@@ -128,6 +131,15 @@ model CalendarEvent {
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model PreferredStudyTime {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  day       String
+  startTime String
+  endTime   String
 }
 
 model StudyGroup {
