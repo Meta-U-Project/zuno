@@ -60,12 +60,6 @@ enum TaskType {
   DISCUSSION
 }
 
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
 enum EventType {
   TASK_BLOCK
   GROUP_SESSION
@@ -108,8 +102,9 @@ model Task {
   title           String
   type            TaskType
   description     String
-  priority        Priority
+  priority        Float?
   deadline        DateTime?
+  studyTime       Float?
   completed       Boolean  @default(false)
   calendarEvents  CalendarEvent[]
 

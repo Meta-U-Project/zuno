@@ -1,6 +1,7 @@
 const getCanvasApiClient = require('./canvasApi');
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
+const { calculatePriorityScore, estimateStudyTime } = require('./priorityUtils')
 
 async function syncCanvasData(user) {
     if (!user.canvasAccessToken || !user.canvasDomain) {
@@ -45,6 +46,26 @@ async function syncCanvasData(user) {
                 if (assignment.submission_types.includes("discussion_topic")) {
                     continue;
                 }
+
+                if (assignment.is_quiz_assignment) {
+                    type = 'QUIZ';
+                } else {
+                    type = 'ASSIGNMENT';
+                }
+
+                console.log('Assignment input:', {
+                    id: assignment.id,
+                    name: assignment.name,
+                    due_at: assignment.due_at,
+                    points_possible: assignment.points_possible,
+                    is_quiz_assignment: assignment.is_quiz_assignment,
+                    submission_types: assignment.submission_types
+                });
+
+
+                const priorityScore = calculatePriorityScore(assignment)
+                const studyTime = estimateStudyTime(assignment)
+
                 const task = await prisma.task.upsert({
                     where: { id: assignment.id.toString() },
                     update: {
@@ -57,11 +78,13 @@ async function syncCanvasData(user) {
                         userId,
                         courseId: course.id.toString(),
                         title: assignment.name,
-                        type: 'ASSIGNMENT',
+                        type: type,
                         description: assignment.description || '',
-                        priority: 'MEDIUM',
+                        priority: priorityScore,
+                        studyTime,
                         deadline: new Date(assignment.due_at),
                     }
+
                 });
 
                 if (assignment.due_at) {
@@ -111,6 +134,9 @@ async function syncCanvasData(user) {
 
                     if (isGraded || hasDueDate) {
 
+                        const priorityScore = calculatePriorityScore(discussion)
+                        const studyTime = estimateStudyTime(discussion)
+
                         const discussionTask = discussion.assignment;
 
                         const existingTask = await prisma.task.findFirst({
@@ -135,17 +161,15 @@ async function syncCanvasData(user) {
                         } else {
                             task = await prisma.task.create({
                                 data: {
+                                    id: discussion.id.toString(),
+                                    userId,
+                                    courseId: course.id.toString(),
                                     title: discussion.title,
                                     type: 'DISCUSSION',
                                     description: discussion.message || '',
-                                    priority: 'MEDIUM',
+                                    priority: priorityScore,
+                                    studyTime,
                                     deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
-                                    user: {
-                                        connect: { id: userId }
-                                    },
-                                    course: {
-                                        connect: { id: course.id.toString() }
-                                    }
                                 }
                             });
                         }
