@@ -1,4 +1,10 @@
 const { PrismaClient } = require('../generated/prisma');
+const {
+    getEligibleTasks,
+    scheduleStudyBlocks,
+    saveStudyBlocks
+} = require('../utils/scheduleAlgorithmUtils');
+
 const prisma = new PrismaClient();
 
 const createTask = async (req, res) => {
@@ -80,8 +86,110 @@ const deleteTask = async (req, res) => {
     }
 };
 
+
+const scheduleStudySessions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { schedulingPeriodDays, saveToCalendar = false } = req.body;
+
+        const eligibleTasks = await getEligibleTasks(userId);
+
+        if (eligibleTasks.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No eligible tasks found that require study blocks',
+                scheduledBlocks: [],
+                summary: { totalTasks: 0, totalBlocks: 0, totalStudyTime: 0 }
+            });
+        }
+
+        const startDate = new Date();
+        let endDate = new Date();
+
+        const tasksWithDeadlines = eligibleTasks.filter(task => task.deadline);
+
+        if (tasksWithDeadlines.length > 0) {
+            const furthestDeadline = new Date(Math.max(
+                ...tasksWithDeadlines.map(task => new Date(task.deadline).getTime())
+            ));
+
+            const minimumEndDate = new Date();
+            minimumEndDate.setDate(minimumEndDate.getDate() + 14); // Minimum 14 days
+
+            endDate = furthestDeadline > minimumEndDate ? furthestDeadline : minimumEndDate;
+        } else if (schedulingPeriodDays) {
+            endDate.setDate(endDate.getDate() + schedulingPeriodDays);
+        } else {
+            endDate.setDate(endDate.getDate() + 14);
+        }
+
+        const actualSchedulingPeriodDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+        const scheduledBlocks = await scheduleStudyBlocks(userId, eligibleTasks, startDate, endDate);
+
+        const calculateDuration = (block) => (block.end_time - block.start_time) / (1000 * 60);
+
+        const totalStudyTime = scheduledBlocks.reduce((sum, block) => sum + calculateDuration(block), 0);
+
+        const dailyBreakdown = {};
+        scheduledBlocks.forEach(block => {
+            const dayKey = block.start_time.toISOString().split('T')[0];
+            if (!dailyBreakdown[dayKey]) {
+                dailyBreakdown[dayKey] = { blocks: 0, totalMinutes: 0 };
+            }
+            dailyBreakdown[dayKey].blocks++;
+            dailyBreakdown[dayKey].totalMinutes += calculateDuration(block);
+        });
+
+        let savedEvents = [];
+        if (saveToCalendar && scheduledBlocks.length > 0) {
+            savedEvents = await saveStudyBlocks(scheduledBlocks);
+        }
+
+        const tasksWithScheduling = eligibleTasks.map(task => {
+            const taskBlocks = scheduledBlocks.filter(block => block.taskId === task.id);
+            const scheduledTime = taskBlocks.reduce((sum, block) => sum + calculateDuration(block), 0);
+            const requiredStudyTime = (task.studyTime || 60) * 60;
+
+            return {
+                id: task.id,
+                title: task.title,
+                requiredStudyTime: requiredStudyTime / 60,
+                scheduledTime,
+                blocksCount: taskBlocks.length,
+                fullyScheduled: scheduledTime >= requiredStudyTime
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Successfully scheduled ${scheduledBlocks.length} study blocks for ${eligibleTasks.length} tasks`,
+            tasks: tasksWithScheduling,
+            summary: {
+                totalTasks: eligibleTasks.length,
+                totalBlocks: scheduledBlocks.length,
+                totalStudyTime,
+                dailyBreakdown
+            },
+            schedulingPeriod: {
+                startDate,
+                endDate,
+                days: actualSchedulingPeriodDays
+            }
+        });
+
+    } catch (error) {
+        console.error('Error scheduling study sessions:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to schedule study sessions'
+        });
+    }
+};
+
 module.exports = {
     createTask,
     updateTask,
-    deleteTask
+    deleteTask,
+    scheduleStudySessions
 };

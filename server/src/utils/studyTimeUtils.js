@@ -69,13 +69,14 @@ function getTimeRangeOverlap(range1, range2) {
     };
 }
 
-function filterSlotsByPreferences(freeSlots, preferenceMap) {
+function filterSlotsByPreferences(freeSlots, preferenceMap, minBlockSize = 15) {
     const filteredSlots = [];
 
     freeSlots.forEach(slot => {
         const dayName = getDayName(slot.start);
         const preferredTimesForDay = preferenceMap[dayName];
 
+        // If no preferences for this day, skip this slot
         if (!preferredTimesForDay || preferredTimesForDay.length === 0) {
             return;
         }
@@ -99,7 +100,9 @@ function filterSlotsByPreferences(freeSlots, preferenceMap) {
                 overlapEnd.setHours(endHours, endMinutes, 0, 0);
 
                 const durationMinutes = (overlapEnd - overlapStart) / (1000 * 60);
-                if (durationMinutes >= 30) {
+
+                // Use the minBlockSize parameter instead of hardcoded 30 minutes
+                if (durationMinutes >= minBlockSize) {
                     filteredSlots.push({
                         start: overlapStart,
                         end: overlapEnd,
@@ -113,6 +116,7 @@ function filterSlotsByPreferences(freeSlots, preferenceMap) {
         });
     });
 
+    // Sort slots by start time
     filteredSlots.sort((a, b) => a.start - b.start);
 
     return filteredSlots;
