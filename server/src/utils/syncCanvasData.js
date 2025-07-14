@@ -42,6 +42,9 @@ async function syncCanvasData(user) {
             const assignments = assignmentsRes.data;
 
             for (const assignment of assignments) {
+                if (assignment.submission_types.includes("discussion_topic")) {
+                    continue;
+                }
                 const task = await prisma.task.upsert({
                     where: { id: assignment.id.toString() },
                     update: {
@@ -94,6 +97,90 @@ async function syncCanvasData(user) {
                 }
             }
         }
+
+        // Sync Discussions
+        for (const course of courseData) {
+            const discussionsRes = await canvas.get(`/courses/${course.id}/discussion_topics?per_page=100`);
+            const discussions = discussionsRes.data;
+
+            console.log(`Found ${discussions.length} discussions in course ${course.name}`);
+
+            for (const discussion of discussions) {
+                    const isGraded = discussion.assignment && discussion.assignment.points_possible > 0; // Fixed: > 0 instead of >= 0
+                    const hasDueDate = discussion.assignment && discussion.assignment.due_at;
+
+                    if (isGraded || hasDueDate) {
+
+                        const discussionTask = discussion.assignment;
+
+                        const existingTask = await prisma.task.findFirst({
+                            where: {
+                                userId: userId,
+                                courseId: course.id.toString(),
+                                title: discussion.title,
+                                type: 'DISCUSSION'
+                            }
+                        });
+
+                        let task;
+                        if (existingTask) {
+                            task = await prisma.task.update({
+                                where: { id: existingTask.id },
+                                data: {
+                                    title: discussion.title,
+                                    description: discussion.message || '',
+                                    deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
+                                }
+                            });
+                        } else {
+                            task = await prisma.task.create({
+                                data: {
+                                    title: discussion.title,
+                                    type: 'DISCUSSION',
+                                    description: discussion.message || '',
+                                    priority: 'MEDIUM',
+                                    deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
+                                    user: {
+                                        connect: { id: userId }
+                                    },
+                                    course: {
+                                        connect: { id: course.id.toString() }
+                                    }
+                                }
+                            });
+                        }
+
+                        if (discussionTask.due_at) {
+                            const existingEvent = await prisma.calendarEvent.findFirst({
+                                where: {
+                                    userId: user.id,
+                                    taskId: task.id,
+                                }
+                            });
+
+                            if (existingEvent) {
+                                await prisma.calendarEvent.update({
+                                    where: { id: existingEvent.id },
+                                    data: {
+                                        start_time: new Date(discussionTask.due_at),
+                                        end_time: new Date(discussionTask.due_at),
+                                    }
+                                });
+                            } else {
+                                await prisma.calendarEvent.create({
+                                    data: {
+                                        userId: user.id,
+                                        taskId: task.id,
+                                        start_time: new Date(discussionTask.due_at),
+                                        end_time: new Date(discussionTask.due_at),
+                                        type: 'TASK_BLOCK',
+                                        is_group_event: false,
+                                        location: 'Canvas',
+                                        createdById: user.id
+                                    }
+                                });
+                            }}}}}
+
 
         // Sync announcements
         for (const course of courseData) {

@@ -57,6 +57,7 @@ enum TaskType {
   EXAM
   MEETING
   STUDY_SESSION
+  DISCUSSION
 }
 
 enum Priority {
@@ -108,7 +109,7 @@ model Task {
   type            TaskType
   description     String
   priority        Priority
-  deadline        DateTime
+  deadline        DateTime?
   completed       Boolean  @default(false)
   calendarEvents  CalendarEvent[]
 
@@ -120,7 +121,7 @@ model CalendarEvent {
   id              String    @id @default(uuid())
   user            User      @relation("UserCalendarEvents", fields: [userId], references: [id])
   userId          String
-  task            Task      @relation(fields: [taskId], references: [id])
+  task        Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId          String
   start_time      DateTime
   end_time        DateTime

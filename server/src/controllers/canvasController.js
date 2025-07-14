@@ -44,7 +44,7 @@ const fetchCourses = async (req, res) => {
     }
 };
 
-const fetchAssignments = async (req, res) => {
+const fetchCanvasTasks = async (req, res) => {
     try {
         const tasks = await prisma.task.findMany({
             where: { userId: req.user.id },
@@ -60,7 +60,7 @@ const fetchAssignments = async (req, res) => {
     }
 };
 
-const fetchCalendarEventsFromAssignments = async (req, res) => {
+const fetchCalendarEventsFromTasks = async (req, res) => {
     try {
         const calendarEvents = await prisma.calendarEvent.findMany({
             where: { userId: req.user.id },
@@ -106,7 +106,7 @@ const fetchAnnouncements = async (req, res) => {
 module.exports = {
     saveCanvasCredentials,
     fetchCourses,
-    fetchAssignments,
-    fetchCalendarEventsFromAssignments,
+    fetchCanvasTasks,
+    fetchCalendarEventsFromTasks,
     fetchAnnouncements
 };
