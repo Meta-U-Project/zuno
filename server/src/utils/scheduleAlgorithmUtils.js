@@ -1,5 +1,6 @@
 const { PrismaClient } = require('../generated/prisma');
 const { getUserPreferenceMap, filterSlotsByPreferences } = require('./studyTimeUtils');
+const { calculatePriorityScore } = require('./priorityUtils');
 
 const prisma = new PrismaClient();
 
@@ -195,7 +196,10 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
         });
 
         const sortedTasks = tasks.sort((a, b) => {
-            const deadlineA = a.deadline ? new Date(a.deadline) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // Default to 2 weeks from now
+            const holisticScoreA = calculatePriorityScore(a);
+            const holisticScoreB = calculatePriorityScore(b);
+
+            const deadlineA = a.deadline ? new Date(a.deadline) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
             const deadlineB = b.deadline ? new Date(b.deadline) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
             const now = new Date();
 
@@ -205,13 +209,10 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
             const urgencyScoreA = 1 / daysToDeadlineA;
             const urgencyScoreB = 1 / daysToDeadlineB;
 
-            const priorityScoreA = a.priority || 0;
-            const priorityScoreB = b.priority || 0;
+            const combinedScoreA = (holisticScoreA * 0.6) + (urgencyScoreA * 0.4);
+            const combinedScoreB = (holisticScoreB * 0.6) + (urgencyScoreB * 0.4);
 
-            const scoreA = (urgencyScoreA * 0.7) + (priorityScoreA * 0.3);
-            const scoreB = (urgencyScoreB * 0.7) + (priorityScoreB * 0.3);
-
-            return scoreB - scoreA;
+            return combinedScoreB - combinedScoreA;
         });
 
         const taskQueue = [];

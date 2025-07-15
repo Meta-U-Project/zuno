@@ -157,7 +157,23 @@ const scheduleStudySessions = async (req, res) => {
                 requiredStudyTime: requiredStudyTime / 60,
                 scheduledTime,
                 blocksCount: taskBlocks.length,
-                fullyScheduled: scheduledTime >= requiredStudyTime
+                fullyScheduled: scheduledTime >= requiredStudyTime,
+                blocks: taskBlocks.map(block => ({
+                    start_time: block.start_time,
+                    end_time: block.end_time,
+                    duration: calculateDuration(block),
+                    day: block.start_time.toISOString().split('T')[0],
+                    startTimeFormatted: block.start_time.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    }),
+                    endTimeFormatted: block.end_time.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    })
+                }))
             };
         });
 
