@@ -5,7 +5,7 @@ import Loading from "../../components/Loading";
 import { PAGES } from "../../utils/constants";
 import DashboardLayout from "../../components/dashboard_components/DashboardLayout";
 import Sidebar from "../../components/dashboard_components/Sidebar";
-import StudyPreferencesModal from "../../components/StudyPreferencesModal";
+import StudyPreferencesModal from "../../components/dashboard_components/StudyPreferencesModal";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -174,7 +174,6 @@ const Dashboard = () => {
                 <DashboardLayout />
             </div>
 
-            {/* Study Preferences Modal */}
             <StudyPreferencesModal
                 isOpen={showPreferencesModal}
                 onClose={() => setShowPreferencesModal(false)}

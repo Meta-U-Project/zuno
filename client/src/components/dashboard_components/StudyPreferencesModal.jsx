@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import './StudyPreferencesModal.css';
 
 const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
@@ -16,6 +17,34 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
             { day: 'sunday', enabled: false, timeRanges: [{ startTime: '10:00', endTime: '16:00' }] }
         ]
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchStudyPreferences();
+        }
+    }, [isOpen]);
+
+    const fetchStudyPreferences = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/users/study-preferences`, {
+                withCredentials: true
+            });
+
+            if (response.data) {
+                setPreferences(response.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch study preferences:', err);
+            setError('Failed to load your study preferences. Using defaults.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDayToggle = (index) => {
         const updatedPreferences = { ...preferences };
@@ -58,19 +87,36 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
     };
 
     const removeDailyHours = (index) => {
-        if (preferences.dailyHours.length <= 1) return; // Don't remove the last one
+        if (preferences.dailyHours.length <= 1) return;
         const updatedPreferences = { ...preferences };
         updatedPreferences.dailyHours.splice(index, 1);
         setPreferences(updatedPreferences);
     };
 
-    const handleSave = () => {
-        const filteredPreferences = {
-            ...preferences,
-            preferredTimes: preferences.preferredTimes.filter(time => time.enabled)
-        };
-        onSave(filteredPreferences);
-        onClose();
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            await axios.post(`${import.meta.env.VITE_SERVER_URL}/users/study-preferences`, preferences, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                withCredentials: true
+            });
+
+            const filteredPreferences = {
+                ...preferences,
+                preferredTimes: preferences.preferredTimes.filter(time => time.enabled)
+            };
+            onSave(filteredPreferences);
+
+            onClose();
+        } catch (err) {
+            console.error('Failed to save study preferences:', err);
+            setError('Failed to save your study preferences. Please try again.');
+            setLoading(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -212,9 +258,17 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
                         </div>
                         </div>
                             </div>
+                                {error && (
+                                    <div className="error-message">
+                                        {error}
+                                    </div>
+                                )}
+
                                 <div className="modal-footer">
-                                    <button className="cancel-button" onClick={onClose}>Cancel</button>
-                                    <button className="save-button" onClick={handleSave}>Save Preferences</button>
+                                    <button className="cancel-button" onClick={onClose} disabled={loading}>Cancel</button>
+                                    <button className="save-button" onClick={handleSave} disabled={loading}>
+                                        {loading ? 'Saving...' : 'Save Preferences'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
