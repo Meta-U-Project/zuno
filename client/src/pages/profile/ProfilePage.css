@@ -1,7 +1,49 @@
-.profile-page-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  background-color: #f9fafb;
+}
+
+.dashboard-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.dashboard-welcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.welcome-content h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-family: "Poppins", sans-serif;
+  background: var(--main-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcome-content p {
+  color: #718096;
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: "Poppins", sans-serif;
+}
+
+.header-icon-container {
+  display: flex;
+  align-items: center;
+}
+
+.header-icons {
+  display: flex;
+  gap: 1rem;
 }
 
 .loading-state, .error-state {
@@ -77,39 +119,31 @@
   gap: 1rem;
 }
 
-.edit-button, .logout-button, .settings-button, .preferences-button, .integration-action, .change-photo-button {
+.edit-button, .preferences-button, .integration-action, .change-photo-button {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
+  font-family: "Poppins", sans-serif;
 }
 
 .edit-button {
-  background-color: #4a6cf7;
+  background: var(--main-gradient);
   color: white;
 }
 
 .edit-button.save-mode {
-  background-color: #4caf50;
+  background: linear-gradient(to right, #4caf50, #2e7d32);
 }
 
 .edit-button:hover {
-  background-color: #3a5ce5;
+  opacity: 0.9;
 }
 
 .edit-button.save-mode:hover {
-  background-color: #3d9c40;
-}
-
-.logout-button {
-  background-color: #f0f0f0;
-  color: #333;
-}
-
-.logout-button:hover {
-  background-color: #e0e0e0;
+  opacity: 0.9;
 }
 
 .profile-content {
@@ -131,22 +165,38 @@
   gap: 1rem;
 }
 
-.profile-image {
+.profile-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+
+.profile-image-placeholder {
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid #f0f0f0;
+  background-color: #f7fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  background: linear-gradient(white, white) padding-box, var(--main-gradient) border-box;
+}
+
+.profile-image-placeholder svg {
+  width: 100px;
+  height: 100px;
 }
 
 .change-photo-button {
-  background-color: #f0f0f0;
-  color: #333;
+  background: var(--main-gradient);
+  color: white;
   width: 100%;
 }
 
 .change-photo-button:hover {
-  background-color: #e0e0e0;
+  opacity: 0.9;
 }
 
 .integration-status {
@@ -158,7 +208,10 @@
 .integration-status h3 {
   margin-top: 0;
   margin-bottom: 1rem;
-  color: #333;
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-family: "Poppins", sans-serif;
 }
 
 .integration-item {
@@ -177,31 +230,34 @@
 }
 
 .integration-name {
-  font-weight: 500;
+  font-weight: 400;
+  font-family: "Poppins", sans-serif;
 }
 
 .integration-badge {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 400;
+  font-family: "Poppins", sans-serif;
 }
 
 .integration-badge.connected {
-  background-color: #e6f7e6;
+  background-color: rgba(76, 175, 80, 0.1);
   color: #4caf50;
 }
 
 .integration-badge.disconnected {
-  background-color: #f7e6e6;
+  background-color: rgba(244, 67, 54, 0.1);
   color: #f44336;
 }
 
 .integration-action {
-  background-color: #f0f0f0;
-  color: #333;
+  background: var(--main-gradient);
+  color: white;
   font-size: 0.8rem;
   padding: 0.25rem 0.5rem;
+  font-weight: 400;
 }
 
 .profile-details {
@@ -214,16 +270,22 @@
   background-color: #fff;
   border-radius: 8px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid transparent;
+  background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
 }
 
 .profile-section h2 {
   margin-top: 0;
   margin-bottom: 1.5rem;
-  color: #333;
-  font-size: 1.5rem;
-  border-bottom: 1px solid #eee;
+  font-size: 1.2rem;
+  font-weight: 500;
+  font-family: "Poppins", sans-serif;
+  border-bottom: 1px solid #e2e8f0;
   padding-bottom: 0.5rem;
+  background: var(--main-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .profile-field {
@@ -237,14 +299,18 @@
 .profile-field label {
   display: block;
   font-size: 0.9rem;
-  color: #666;
+  color: #718096;
   margin-bottom: 0.5rem;
+  font-weight: 400;
+  font-family: "Poppins", sans-serif;
 }
 
 .profile-field p {
   margin: 0;
   font-size: 1rem;
-  color: #333;
+  color: #2d3748;
+  font-weight: 400;
+  font-family: "Poppins", sans-serif;
 }
 
 .profile-field input {
@@ -264,7 +330,10 @@
 .study-days h3 {
   margin-top: 0;
   margin-bottom: 1rem;
-  color: #333;
+  color: #2d3748;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: "Poppins", sans-serif;
 }
 
 .days-container {
@@ -293,18 +362,19 @@
 }
 
 .day-label {
-  font-weight: 500;
+  font-weight: 400;
   font-size: 0.9rem;
+  font-family: "Poppins", sans-serif;
 }
 
 .preferences-button {
-  background-color: #4a6cf7;
+  background: var(--main-gradient);
   color: white;
   width: 100%;
 }
 
 .preferences-button:hover {
-  background-color: #3a5ce5;
+  opacity: 0.9;
 }
 
 .account-settings {
@@ -314,20 +384,71 @@
 }
 
 .settings-button {
-  background-color: #f0f0f0;
-  color: #333;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
   text-align: left;
+  font-family: "Poppins", sans-serif;
+  background-color: #f7fafc;
+  color: #2d3748;
+  border-left: 3px solid var(--purple);
+  margin-bottom: 0.5rem;
 }
 
 .settings-button:hover {
-  background-color: #e0e0e0;
+  background-color: #edf2f7;
 }
 
 .settings-button.danger {
-  background-color: #f7e6e6;
-  color: #f44336;
+  border-left: 3px solid #e53e3e;
+  color: #e53e3e;
 }
 
 .settings-button.danger:hover {
-  background-color: #f5d5d5;
+  background-color: #fef5e7;
+}
+
+.settings-button.logout {
+  border-left: 3px solid #f59e0b;
+  color: #2d3748;
+  margin-top: 1rem;
+}
+
+.settings-button.logout:hover {
+  background-color: #fef5e7;
+}
+
+.dashboard-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f9fafb;
+}
+
+.error-content {
+  text-align: center;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+}
+
+.error-content h1 {
+  color: #f44336;
+  margin-bottom: 1rem;
+}
+
+.error-content button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #4a6cf7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
