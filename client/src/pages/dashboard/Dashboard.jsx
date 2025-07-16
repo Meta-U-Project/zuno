@@ -74,7 +74,9 @@ const Dashboard = () => {
                 const hasPreferences = localStorage.getItem('hasSetStudyPreferences') === 'true';
 
                 const isFromSignup = location.state?.fromSignup;
-                if (isFromSignup || !hasPreferences) {
+                const openPreferences = location.state?.openPreferences;
+
+                if (isFromSignup || !hasPreferences || openPreferences) {
                     setShowPreferencesModal(true);
                 }
             } catch (error) {

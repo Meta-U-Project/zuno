@@ -11,6 +11,7 @@ const getUserProfile = async (req, res) => {
             firstName: true,
             lastName: true,
             email: true,
+            school: true,
         }
         });
 
@@ -136,4 +137,42 @@ const saveStudyPreferences = async (req, res) => {
     }
 };
 
-module.exports = { getUserProfile, getIntegrations, getStudyPreferences, saveStudyPreferences };
+const updateUserProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { firstName, lastName, school } = req.body;
+
+        if (!firstName || !lastName) {
+            return res.status(400).json({ message: 'First name and last name are required' });
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                firstName,
+                lastName,
+                school
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                school: true
+            }
+        });
+
+        res.json(updatedUser);
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+module.exports = {
+    getUserProfile,
+    getIntegrations,
+    getStudyPreferences,
+    saveStudyPreferences,
+    updateUserProfile
+};
