@@ -3,16 +3,17 @@ import './StudyPreferencesModal.css';
 
 const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
     const [preferences, setPreferences] = useState({
-        startOfDay: '09:00',
-        endOfDay: '20:00',
+        dailyHours: [
+            { day: 'default', startTime: '09:00', endTime: '20:00' }
+        ],
         preferredTimes: [
-            { day: 'monday', startTime: '09:00', endTime: '17:00', enabled: true },
-            { day: 'tuesday', startTime: '09:00', endTime: '17:00', enabled: true },
-            { day: 'wednesday', startTime: '09:00', endTime: '17:00', enabled: true },
-            { day: 'thursday', startTime: '09:00', endTime: '17:00', enabled: true },
-            { day: 'friday', startTime: '09:00', endTime: '17:00', enabled: true },
-            { day: 'saturday', startTime: '10:00', endTime: '16:00', enabled: false },
-            { day: 'sunday', startTime: '10:00', endTime: '16:00', enabled: false }
+            { day: 'monday', enabled: true, timeRanges: [{ startTime: '09:00', endTime: '17:00' }] },
+            { day: 'tuesday', enabled: true, timeRanges: [{ startTime: '09:00', endTime: '17:00' }] },
+            { day: 'wednesday', enabled: true, timeRanges: [{ startTime: '09:00', endTime: '17:00' }] },
+            { day: 'thursday', enabled: true, timeRanges: [{ startTime: '09:00', endTime: '17:00' }] },
+            { day: 'friday', enabled: true, timeRanges: [{ startTime: '09:00', endTime: '17:00' }] },
+            { day: 'saturday', enabled: false, timeRanges: [{ startTime: '10:00', endTime: '16:00' }] },
+            { day: 'sunday', enabled: false, timeRanges: [{ startTime: '10:00', endTime: '16:00' }] }
         ]
     });
 
@@ -22,17 +23,45 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
         setPreferences(updatedPreferences);
     };
 
-    const handleTimeChange = (index, field, value) => {
+    const handleTimeChange = (dayIndex, timeIndex, field, value) => {
         const updatedPreferences = { ...preferences };
-        updatedPreferences.preferredTimes[index][field] = value;
+        updatedPreferences.preferredTimes[dayIndex].timeRanges[timeIndex][field] = value;
         setPreferences(updatedPreferences);
     };
 
-    const handleDayTimeChange = (field, value) => {
-        setPreferences({
-        ...preferences,
-        [field]: value
+    const addTimeRange = (dayIndex) => {
+        const updatedPreferences = { ...preferences };
+        updatedPreferences.preferredTimes[dayIndex].timeRanges.push({
+            startTime: '09:00',
+            endTime: '17:00'
         });
+        setPreferences(updatedPreferences);
+    };
+
+    const removeTimeRange = (dayIndex, timeIndex) => {
+        if (preferences.preferredTimes[dayIndex].timeRanges.length <= 1) return; // Don't remove the last one
+        const updatedPreferences = { ...preferences };
+        updatedPreferences.preferredTimes[dayIndex].timeRanges.splice(timeIndex, 1);
+        setPreferences(updatedPreferences);
+    };
+
+    const handleDailyHoursChange = (index, field, value) => {
+        const updatedPreferences = { ...preferences };
+        updatedPreferences.dailyHours[index][field] = value;
+        setPreferences(updatedPreferences);
+    };
+
+    const addDailyHours = () => {
+        const updatedPreferences = { ...preferences };
+        updatedPreferences.dailyHours.push({ day: 'monday', startTime: '09:00', endTime: '20:00' });
+        setPreferences(updatedPreferences);
+    };
+
+    const removeDailyHours = (index) => {
+        if (preferences.dailyHours.length <= 1) return; // Don't remove the last one
+        const updatedPreferences = { ...preferences };
+        updatedPreferences.dailyHours.splice(index, 1);
+        setPreferences(updatedPreferences);
     };
 
     const handleSave = () => {
@@ -56,25 +85,64 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
 
                 <div className="modal-body">
                     <div className="preferences-section">
-                        <h3>Daily Study Hours</h3>
-                        <div className="time-range-container">
-                            <div className="time-input-group">
-                                <label>Start of Day</label>
-                                <input
-                                    type="time"
-                                    value={preferences.startOfDay}
-                                    onChange={(e) => handleDayTimeChange('startOfDay', e.target.value)}
-                                />
+                        <h3>Daily Hours</h3>
+                        <p className="section-description">When do you start and end your day? You can add multiple time ranges if needed.</p>
+
+                        {preferences.dailyHours.map((hours, index) => (
+                            <div key={index} className="time-range-container">
+                                {index > 0 && (
+                                    <div className="time-input-group day-select">
+                                        <label>Day</label>
+                                        <select
+                                            value={hours.day}
+                                            onChange={(e) => handleDailyHoursChange(index, 'day', e.target.value)}
+                                        >
+                                            <option value="monday">Monday</option>
+                                            <option value="tuesday">Tuesday</option>
+                                            <option value="wednesday">Wednesday</option>
+                                            <option value="thursday">Thursday</option>
+                                            <option value="friday">Friday</option>
+                                            <option value="saturday">Saturday</option>
+                                            <option value="sunday">Sunday</option>
+                                        </select>
+                                    </div>
+                                )}
+                                <div className="time-input-group">
+                                    <label>{index === 0 ? 'Default Start of Day' : 'Start of Day'}</label>
+                                    <input
+                                        type="time"
+                                        value={hours.startTime}
+                                        onChange={(e) => handleDailyHoursChange(index, 'startTime', e.target.value)}
+                                    />
+                                </div>
+                                <div className="time-input-group">
+                                    <label>{index === 0 ? 'Default End of Day' : 'End of Day'}</label>
+                                    <input
+                                        type="time"
+                                        value={hours.endTime}
+                                        onChange={(e) => handleDailyHoursChange(index, 'endTime', e.target.value)}
+                                    />
+                                </div>
+                                {index > 0 && (
+                                    <button
+                                        type="button"
+                                        className="remove-button"
+                                        onClick={() => removeDailyHours(index)}
+                                        aria-label="Remove time range"
+                                    >
+                                        ×
+                                    </button>
+                                )}
                             </div>
-                            <div className="time-input-group">
-                                <label>End of Day</label>
-                                <input
-                                    type="time"
-                                    value={preferences.endOfDay}
-                                    onChange={(e) => handleDayTimeChange('endOfDay', e.target.value)}
-                                />
-                            </div>
-                        </div>
+                        ))}
+
+                        <button
+                            type="button"
+                            className="add-button"
+                            onClick={addDailyHours}
+                        >
+                            Have different daily schedules? Add another time range
+                        </button>
                     </div>
 
                     <div className="preferences-section">
@@ -86,34 +154,58 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
                                 <div key={dayPreference.day} className={`day-preference ${dayPreference.enabled ? 'enabled' : 'disabled'}`}>
                                     <div className="day-header">
                                         <label className="day-toggle">
-                                        <input
-                                            type="checkbox"
-                                            checked={dayPreference.enabled}
-                                            onChange={() => handleDayToggle(index)}
-                                        />
-                                        <span className="day-name">{dayPreference.day.charAt(0).toUpperCase() + dayPreference.day.slice(1)}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={dayPreference.enabled}
+                                                onChange={() => handleDayToggle(index)}
+                                            />
+                                            <span className="checkbox-custom"></span>
+                                            <span className="day-name">{dayPreference.day.charAt(0).toUpperCase() + dayPreference.day.slice(1)}</span>
                                         </label>
                                     </div>
 
                                     {dayPreference.enabled && (
-                                        <div className="day-times">
-                                            <div className="time-input-group">
-                                                <label>From</label>
-                                                <input
-                                                type="time"
-                                                value={dayPreference.startTime}
-                                                onChange={(e) => handleTimeChange(index, 'startTime', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="time-input-group">
-                                                <label>To</label>
-                                                <input
-                                                    type="time"
-                                                    value={dayPreference.endTime}
-                                                    onChange={(e) => handleTimeChange(index, 'endTime', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
+                                        <>
+                                            {dayPreference.timeRanges.map((timeRange, timeIndex) => (
+                                                <div key={timeIndex} className="day-time-range">
+                                                    <div className="day-times">
+                                                        <div className="time-input-group">
+                                                            <label>From</label>
+                                                            <input
+                                                                type="time"
+                                                                value={timeRange.startTime}
+                                                                onChange={(e) => handleTimeChange(index, timeIndex, 'startTime', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="time-input-group">
+                                                            <label>To</label>
+                                                            <input
+                                                                type="time"
+                                                                value={timeRange.endTime}
+                                                                onChange={(e) => handleTimeChange(index, timeIndex, 'endTime', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        {timeIndex > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                className="remove-time-button"
+                                                                onClick={() => removeTimeRange(index, timeIndex)}
+                                                                aria-label="Remove time range"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                className="add-time-button"
+                                                onClick={() => addTimeRange(index)}
+                                            >
+                                                + Add another time slot
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             ))}
