@@ -8,6 +8,7 @@ import ResetPassword from './pages/resetpassword/ResetPassword';
 import NewPasswordPage from './pages/newpassword/NewPasswordPage';
 import ConnectPage from './pages/connect/Connect';
 import CanvasAuthPage from './pages/connect/CanvasAuthPage';
+import CalendarPage from './pages/calendar/CalendarPage';
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/signup" element={<SignUpPage/>}/>
         <Route path="/dashboard" element={<Dashboard/>}/>
+        <Route path="/calendar" element={<CalendarPage/>}/>
         <Route path="/connect" element={<ConnectPage/>}/>
         <Route path="/canvas-auth" element={<CanvasAuthPage/>}/>
         <Route path="/forgot-password" element={<ResetPassword />} />

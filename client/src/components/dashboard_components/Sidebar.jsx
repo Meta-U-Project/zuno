@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./Sidebar.css";
 
 const Sidebar = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [activeItem, setActiveItem] = useState("dashboard");
 
     const navigationItems = [
@@ -17,10 +18,21 @@ const Sidebar = () => {
         { id: "study-chat", label: "Study Chat", path: "/study-chat" }
     ];
 
+    // Update active item based on current location
+    useEffect(() => {
+        const currentPath = location.pathname;
+        const currentItem = navigationItems.find(item => item.path === currentPath);
+        if (currentItem) {
+            setActiveItem(currentItem.id);
+        }
+    }, [location.pathname]);
+
     const handleNavigation = (item) => {
         setActiveItem(item.id);
         // For now, only dashboard navigation works
         if (item.id === "dashboard") {
+            navigate(item.path);
+        } else if (item.id === "calendar") {
             navigate(item.path);
         } else {
             // Placeholder for future navigation

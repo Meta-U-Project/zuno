@@ -141,6 +141,7 @@
     font-family: "Poppins", sans-serif;
     background: var(--main-gradient);
     background-clip: text;
+    -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 

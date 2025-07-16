@@ -32,6 +32,8 @@ model User {
   canvasDomain    String?
   canvasAccessToken String?
 
+  preferredStudyTime PreferredStudyTime[]
+
   courses         Course[]         @relation("UserCourses")
   tasks           Task[]           @relation("UserTasks")
   calendarEvents  CalendarEvent[]  @relation("UserCalendarEvents")
@@ -57,12 +59,7 @@ enum TaskType {
   EXAM
   MEETING
   STUDY_SESSION
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
+  DISCUSSION
 }
 
 enum EventType {
@@ -107,9 +104,11 @@ model Task {
   title           String
   type            TaskType
   description     String
-  priority        Priority
-  deadline        DateTime
+  priority        Float?
+  deadline        DateTime?
+  studyTime       Float?
   completed       Boolean  @default(false)
+  requiresStudyBlock Boolean @default(false)
   calendarEvents  CalendarEvent[]
 
   createdAt       DateTime @default(now())
@@ -120,7 +119,7 @@ model CalendarEvent {
   id              String    @id @default(uuid())
   user            User      @relation("UserCalendarEvents", fields: [userId], references: [id])
   userId          String
-  task            Task      @relation(fields: [taskId], references: [id])
+  task        Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId          String
   start_time      DateTime
   end_time        DateTime
@@ -132,6 +131,15 @@ model CalendarEvent {
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model PreferredStudyTime {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  day       String
+  startTime String
+  endTime   String
 }
 
 model StudyGroup {
