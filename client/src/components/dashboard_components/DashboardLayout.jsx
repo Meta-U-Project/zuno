@@ -35,7 +35,7 @@ const DashboardLayout = () => {
                     setAssignments(upcomingAssignments);
                 }
 
-                const calendarResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/calendar-events`, {
+                const calendarResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
                     credentials: 'include',
                 });
                 if (calendarResponse.ok) {

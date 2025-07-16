@@ -31,7 +31,7 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
             setLoading(true);
             setError(null);
 
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/users/study-preferences`, {
+            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/user/study-preferences`, {
                 withCredentials: true
             });
 
@@ -98,19 +98,19 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
             setLoading(true);
             setError(null);
 
-            await axios.post(`${import.meta.env.VITE_SERVER_URL}/users/study-preferences`, preferences, {
+            const filteredPreferences = {
+                dailyHours: preferences.dailyHours.filter(hours => hours.day === 'default'), // Only keep default hours
+                preferredTimes: preferences.preferredTimes.filter(time => time.enabled)
+            };
+
+            await axios.post(`${import.meta.env.VITE_SERVER_URL}/user/study-preferences`, filteredPreferences, {
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 withCredentials: true
             });
 
-            const filteredPreferences = {
-                ...preferences,
-                preferredTimes: preferences.preferredTimes.filter(time => time.enabled)
-            };
             onSave(filteredPreferences);
-
             onClose();
         } catch (err) {
             console.error('Failed to save study preferences:', err);
