@@ -43,9 +43,8 @@ const Dashboard = () => {
     };
 
     const handleViewProfile = () => {
-        console.log('View Profile clicked - Coming soon!');
         setShowProfileDropdown(false);
-        // Future profile view functionality
+        navigate('/profile');
     };
 
     const handleSavePreferences = (preferences) => {
