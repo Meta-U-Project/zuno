@@ -1,0 +1,222 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box, var(--main-gradient) border-box;
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.close-button:hover {
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.preferences-section {
+    margin-bottom: 2rem;
+}
+
+.preferences-section h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-family: "Poppins", sans-serif;
+}
+
+.section-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0 0 1rem 0;
+    font-family: "Poppins", sans-serif;
+}
+
+.time-range-container {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.time-input-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.time-input-group label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-family: "Poppins", sans-serif;
+}
+
+.time-input-group input {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.2s;
+}
+
+.time-input-group input:focus {
+    outline: none;
+    border-color: #7735e2;
+    box-shadow: 0 0 0 2px rgba(119, 53, 226, 0.1);
+}
+
+.days-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.day-preference {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.day-preference.enabled {
+    border-color: #ddd;
+    background-color: #fafafa;
+}
+
+.day-preference.disabled {
+    opacity: 0.7;
+}
+
+.day-header {
+    margin-bottom: 1rem;
+}
+
+.day-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.day-toggle input {
+    margin-right: 0.75rem;
+}
+
+.day-name {
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+}
+
+.day-times {
+    display: flex;
+    gap: 1rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1.5rem;
+    border-top: 1px solid #f0f0f0;
+    gap: 1rem;
+}
+
+.cancel-button, .save-button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-button {
+    background: none;
+    border: 1px solid #ddd;
+    color: #666;
+}
+
+.cancel-button:hover {
+    background-color: #f5f5f5;
+    border-color: #ccc;
+}
+
+.save-button {
+    background: var(--main-gradient);
+    border: none;
+    color: white;
+}
+
+.save-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
