@@ -25,7 +25,7 @@ const CalendarPage = () => {
         assignment: { bg: '#FF0000', border: '#FF0000' },
         quiz: { bg: '#00FF00', border: '#00FF00' },
         discussion: { bg: '#FF69B4', border: '#FF69B4' },
-        task_block: { bg: '#FFFF00', border: '#FFFF00' },
+        task_block: { bg: '#808080', border: '#808080' },
     };
 
     const getEventColor = (type) => {
@@ -133,7 +133,7 @@ const CalendarPage = () => {
 
                             return {
                                 id: `pending-${task.id}-${block.start_time}`,
-                                title: `Study ${task.title} (${formattedTime})`,
+                                title: `Study Block for ${task.title} (${formattedTime})`,
                                 start: block.start_time,
                                 end: block.end_time,
                                 backgroundColor: getEventColor('task_block').bg,

@@ -74,12 +74,24 @@ const fetchCalendarEventsFromTasks = async (req, res) => {
         });
 
         const transformedEvents = calendarEvents.map(event => {
-            // Convert TaskType enum (e.g., ASSIGNMENT) to lowercase string (e.g., 'assignment')
-            const taskType = event.task.type.toLowerCase();
+            const isStudyBlock = event.location === 'Study Session';
+
+            const taskType = isStudyBlock ? 'task_block' : event.task.type.toLowerCase();
+
+            const formattedTime = isStudyBlock ?
+                new Date(event.start_time).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                }) : '';
+
+            const title = isStudyBlock ?
+                `Study Block for ${event.task.title} (${formattedTime})` :
+                event.task.title;
 
             return {
                 id: event.id,
-                title: event.task.title,
+                title: title,
                 date: event.start_time,
                 type: taskType,
                 courseId: event.task.courseId,
