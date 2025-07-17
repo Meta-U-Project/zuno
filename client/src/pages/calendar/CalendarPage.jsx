@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -10,54 +11,63 @@ const CalendarPage = () => {
     const calendarRef = useRef(null);
     const [currentView, setCurrentView] = useState('dayGridMonth');
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Placeholder events for demonstration
-    const events = [
-        {
-            id: '1',
-            title: 'Math Assignment Due',
-            start: '2025-07-15T23:59:00',
-            backgroundColor: '#7735e2',
-            borderColor: '#7735e2',
-            textColor: '#ffffff'
-        },
-        {
-            id: '2',
-            title: 'Physics Lab',
-            start: '2025-07-16T14:00:00',
-            end: '2025-07-16T16:00:00',
-            backgroundColor: '#0a63ac',
-            borderColor: '#0a63ac',
-            textColor: '#ffffff'
-        },
-        {
-            id: '3',
-            title: 'Study Group',
-            start: '2025-07-17T18:00:00',
-            end: '2025-07-17T20:00:00',
-            backgroundColor: '#28a745',
-            borderColor: '#28a745',
-            textColor: '#ffffff'
-        },
-        {
-            id: '4',
-            title: 'Chemistry Exam',
-            start: '2025-07-20T10:00:00',
-            end: '2025-07-20T12:00:00',
-            backgroundColor: '#dc3545',
-            borderColor: '#dc3545',
-            textColor: '#ffffff'
-        },
-        {
-            id: '5',
-            title: 'Project Presentation',
-            start: '2025-07-22T15:30:00',
-            end: '2025-07-22T16:30:00',
-            backgroundColor: '#fd7e14',
-            borderColor: '#fd7e14',
-            textColor: '#ffffff'
-        }
-    ];
+    const eventColors = {
+        assignment: { bg: '#FF0000', border: '#FF0000' },
+        quiz: { bg: '#00FF00', border: '#00FF00' },
+        discussion: { bg: '#FF69B4', border: '#FF69B4' },
+        task_block: { bg: '#FFFF00', border: '#FFFF00' },
+    };
+
+    const getEventColor = (type) => {
+        return eventColors[type] || eventColors.other;
+    };
+
+    useEffect(() => {
+        const fetchCalendarEvents = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
+                    withCredentials: true
+                });
+
+                if (response.status === 200) {
+                    const transformedEvents = response.data.map(event => {
+                        const eventType = event.type || 'other';
+                        const colors = getEventColor(eventType);
+
+                        return {
+                            id: event.id,
+                            title: event.title,
+                            start: event.date,
+                            backgroundColor: colors.bg,
+                            borderColor: colors.border,
+                            textColor: '#ffffff',
+                            extendedProps: {
+                                courseId: event.courseId,
+                                courseName: event.courseName,
+                                type: eventType
+                            }
+                        };
+                    });
+
+                    setEvents(transformedEvents);
+                }
+            } catch (err) {
+                console.error('Error fetching calendar events:', err);
+                setError('Failed to load calendar events. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCalendarEvents();
+    }, []);
 
     const handleViewChange = (view) => {
         const calendarApi = calendarRef.current.getApi();
@@ -189,30 +199,102 @@ const CalendarPage = () => {
                     </div>
 
                     <div className="calendar-container">
-                        <FullCalendar
-                            ref={calendarRef}
-                            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                            initialView="dayGridMonth"
-                            headerToolbar={false}
-                            events={events}
-                            height="auto"
-                            aspectRatio={1.8}
-                            eventDisplay="block"
-                            dayMaxEvents={3}
-                            moreLinkClick="popover"
-                            eventClick={(info) => {
-                                console.log('Event clicked:', info.event.title);
-                                // Placeholder for event click handling
-                            }}
-                            dateClick={(info) => {
-                                console.log('Date clicked:', info.dateStr);
-                                // Placeholder for date click handling
-                            }}
-                            eventDidMount={(info) => {
-                                // Add custom styling or tooltips if needed
-                                info.el.setAttribute('title', info.event.title);
-                            }}
-                        />
+                        {loading ? (
+                            <div className="calendar-loading">
+                                <div className="loading-spinner"></div>
+                                <p>Loading your calendar events...</p>
+                            </div>
+                        ) : error ? (
+                            <div className="calendar-error">
+                                <p>{error}</p>
+                                <button onClick={() => window.location.reload()}>Try Again</button>
+                            </div>
+                        ) : (
+                            <FullCalendar
+                                ref={calendarRef}
+                                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                                initialView="dayGridMonth"
+                                headerToolbar={false}
+                                events={events}
+                                height="auto"
+                                aspectRatio={1.8}
+                                eventDisplay="block"
+                                dayMaxEvents={3}
+                                moreLinkClick="popover"
+                                eventClick={(info) => {
+                                    console.log('Event clicked:', info.event.title);
+                                    console.log('Course:', info.event.extendedProps.courseName);
+                                    // Placeholder for event click handling
+                                }}
+                                dateClick={(info) => {
+                                    console.log('Date clicked:', info.dateStr);
+                                    // Placeholder for date click handling
+                                }}
+                                eventDidMount={(info) => {
+                                    // Create custom tooltip with more detailed information
+                                    const event = info.event;
+                                    const courseName = event.extendedProps.courseName || 'No course';
+                                    const eventType = event.extendedProps.type || 'Other';
+
+                                    // Create tooltip element
+                                    const tooltip = document.createElement('div');
+                                    tooltip.className = 'event-detailed-tooltip';
+                                    tooltip.innerHTML = `
+                                        <div class="tooltip-header" style="background: ${event.backgroundColor}">
+                                            <div class="tooltip-type">${eventType.toUpperCase()}</div>
+                                            <div class="tooltip-title">${event.title}</div>
+                                        </div>
+                                        <div class="tooltip-body">
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Course:</span>
+                                                <span class="tooltip-value">${courseName}</span>
+                                            </div>
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Date:</span>
+                                                <span class="tooltip-value">${new Date(event.start).toLocaleString('en-US', {
+                                                    weekday: 'short',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: 'numeric',
+                                                    minute: '2-digit'
+                                                })}</span>
+                                            </div>
+                                        </div>
+                                    `;
+
+                                    // Position tooltip and handle hover events
+                                    document.body.appendChild(tooltip);
+                                    tooltip.style.position = 'absolute';
+                                    tooltip.style.display = 'none';
+                                    tooltip.style.zIndex = 10000;
+
+                                    // Show tooltip on hover
+                                    info.el.addEventListener('mouseenter', () => {
+                                        const rect = info.el.getBoundingClientRect();
+                                        tooltip.style.left = `${rect.left + window.scrollX}px`;
+                                        tooltip.style.top = `${rect.bottom + window.scrollY + 10}px`;
+                                        tooltip.style.display = 'block';
+                                    });
+
+                                    // Hide tooltip when mouse leaves
+                                    info.el.addEventListener('mouseleave', () => {
+                                        tooltip.style.display = 'none';
+                                    });
+
+                                    // Clean up tooltip when event is removed
+                                    info.el.addEventListener('remove', () => {
+                                        if (tooltip && tooltip.parentNode) {
+                                            tooltip.parentNode.removeChild(tooltip);
+                                        }
+                                    });
+                                }}
+                                noEventsContent={() => (
+                                    <div className="no-events-message">
+                                        <p>No events to display</p>
+                                    </div>
+                                )}
+                            />
+                        )}
                     </div>
 
                 </div>

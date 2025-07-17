@@ -73,15 +73,20 @@ const fetchCalendarEventsFromTasks = async (req, res) => {
             }
         });
 
-        const transformedEvents = calendarEvents.map(event => ({
-            id: event.id,
-            title: event.task.title,
-            date: event.start_time,
-            type: 'assignment',
-            courseId: event.task.courseId,
-            courseName: event.task.course.course_name,
-            url: ''
-        }));
+        const transformedEvents = calendarEvents.map(event => {
+            // Convert TaskType enum (e.g., ASSIGNMENT) to lowercase string (e.g., 'assignment')
+            const taskType = event.task.type.toLowerCase();
+
+            return {
+                id: event.id,
+                title: event.task.title,
+                date: event.start_time,
+                type: taskType,
+                courseId: event.task.courseId,
+                courseName: event.task.course.course_name,
+                url: ''
+            };
+        });
 
         res.status(200).json(transformedEvents);
     } catch (err) {
