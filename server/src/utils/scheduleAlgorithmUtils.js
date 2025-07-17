@@ -410,6 +410,23 @@ async function saveStudyBlocks(studyBlocks) {
             )
         );
 
+        const taskIds = [...new Set(studyBlocks.map(block => block.taskId))];
+
+        if (taskIds.length > 0) {
+            await prisma.task.updateMany({
+                where: {
+                    id: {
+                        in: taskIds
+                    }
+                },
+                data: {
+                    requiresStudyBlock: false
+                }
+            });
+
+            console.log(`Updated ${taskIds.length} tasks to no longer require study blocks`);
+        }
+
         console.log(`Created ${createdEvents.length} study blocks`);
         return createdEvents;
     } catch (error) {

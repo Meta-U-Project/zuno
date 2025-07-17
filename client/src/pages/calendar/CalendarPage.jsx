@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -15,6 +15,12 @@ const CalendarPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [studyBlocks, setStudyBlocks] = useState([]);
+    const [showStudyBlocksModal, setShowStudyBlocksModal] = useState(false);
+    const [hasUnsavedBlocks, setHasUnsavedBlocks] = useState(false);
+    const [taskBlocksMap, setTaskBlocksMap] = useState({});
+    const [selectedBlocks, setSelectedBlocks] = useState({});
+
     const eventColors = {
         assignment: { bg: '#FF0000', border: '#FF0000' },
         quiz: { bg: '#00FF00', border: '#00FF00' },
@@ -26,48 +32,162 @@ const CalendarPage = () => {
         return eventColors[type] || eventColors.other;
     };
 
-    useEffect(() => {
-        const fetchCalendarEvents = async () => {
-            try {
-                setLoading(true);
-                setError(null);
+    const fetchCalendarEvents = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
 
-                const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
-                    withCredentials: true
+            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
+                withCredentials: true
+            });
+
+            if (response.status === 200) {
+                const transformedEvents = response.data.map(event => {
+                    const eventType = event.type || 'other';
+                    const colors = getEventColor(eventType);
+
+                    return {
+                        id: event.id,
+                        title: event.title,
+                        start: event.date,
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        textColor: '#ffffff',
+                        extendedProps: {
+                            courseId: event.courseId,
+                            courseName: event.courseName,
+                            type: eventType
+                        }
+                    };
                 });
 
-                if (response.status === 200) {
-                    const transformedEvents = response.data.map(event => {
-                        const eventType = event.type || 'other';
-                        const colors = getEventColor(eventType);
+                setEvents(transformedEvents);
+            }
+        } catch (err) {
+            console.error('Error fetching calendar events:', err);
+            setError('Failed to load calendar events. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-                        return {
-                            id: event.id,
-                            title: event.title,
-                            start: event.date,
-                            backgroundColor: colors.bg,
-                            borderColor: colors.border,
-                            textColor: '#ffffff',
-                            extendedProps: {
-                                courseId: event.courseId,
-                                courseName: event.courseName,
-                                type: eventType
-                            }
+    const checkForTasksNeedingScheduling = useCallback(async () => {
+        try {
+            const checkResponse = await axios.get(
+                `${import.meta.env.VITE_SERVER_URL}/task/need-scheduling`,
+                { withCredentials: true }
+            );
+
+            if (checkResponse.status === 200 && checkResponse.data.needsScheduling) {
+                await generateStudyBlocks();
+            }
+        } catch (err) {
+            console.error('Error checking for tasks that need scheduling:', err);
+        }
+    }, []);
+
+    const generateStudyBlocks = useCallback(async () => {
+        try {
+            const response = await axios.post(
+                `${import.meta.env.VITE_SERVER_URL}/task/schedule`,
+                { schedulingPeriodDays: 14, saveToCalendar: false },
+                { withCredentials: true }
+            );
+
+            if (response.status === 200 && response.data.success) {
+                const blocksByTask = {};
+                const allBlocks = [];
+
+                response.data.tasks.forEach(task => {
+                    if (task.blocks && task.blocks.length > 0) {
+                        blocksByTask[task.id] = {
+                            taskId: task.id,
+                            taskTitle: task.title,
+                            blocks: task.blocks,
+                            selected: true
                         };
-                    });
 
-                    setEvents(transformedEvents);
+                        task.blocks.forEach(block => {
+                            const blockId = `${task.id}-${new Date(block.start_time).getTime()}`;
+                            if (!selectedBlocks[blockId]) {
+                                setSelectedBlocks(prev => ({
+                                    ...prev,
+                                    [blockId]: true
+                                }));
+                            }
+                        });
+
+                        const taskBlocks = task.blocks.map(block => {
+                            const startTime = new Date(block.start_time);
+                            const formattedTime = startTime.toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                            });
+
+                            const formattedDate = startTime.toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric'
+                            });
+
+                            return {
+                                id: `pending-${task.id}-${block.start_time}`,
+                                title: `Study ${task.title} (${formattedTime})`,
+                                start: block.start_time,
+                                end: block.end_time,
+                                backgroundColor: getEventColor('task_block').bg,
+                                borderColor: getEventColor('task_block').border,
+                                textColor: '#000000',
+                                extendedProps: {
+                                    taskId: task.id,
+                                    taskTitle: task.title,
+                                    type: 'task_block',
+                                    isPending: true,
+                                    duration: block.duration,
+                                    formattedDate: formattedDate,
+                                    formattedTime: formattedTime
+                                },
+                                display: 'block',
+                                classNames: ['pending-study-block']
+                            };
+                        });
+
+                        allBlocks.push(...taskBlocks);
+                    }
+                });
+
+                setTaskBlocksMap(blocksByTask);
+                setStudyBlocks(allBlocks);
+
+                if (allBlocks.length > 0) {
+                    setShowStudyBlocksModal(true);
+                    setHasUnsavedBlocks(true);
                 }
-            } catch (err) {
-                console.error('Error fetching calendar events:', err);
-                setError('Failed to load calendar events. Please try again later.');
-            } finally {
-                setLoading(false);
+            }
+        } catch (err) {
+            console.error('Error generating study blocks:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchCalendarEvents();
+        checkForTasksNeedingScheduling();
+
+        const handleBeforeUnload = (e) => {
+            if (hasUnsavedBlocks) {
+                const message = 'You have unsaved study blocks. If you leave now, they will be discarded.';
+                e.returnValue = message;
+                return message;
             }
         };
 
-        fetchCalendarEvents();
-    }, []);
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [fetchCalendarEvents, checkForTasksNeedingScheduling, hasUnsavedBlocks]);
 
     const handleViewChange = (view) => {
         const calendarApi = calendarRef.current.getApi();
@@ -96,7 +216,6 @@ const CalendarPage = () => {
     };
 
     const handleAddEvent = () => {
-        // Placeholder for add event functionality
         console.log('Add Event clicked - Coming soon!');
     };
 
@@ -114,7 +233,6 @@ const CalendarPage = () => {
                 day: 'numeric'
             });
         } else if (currentView === 'timeGridWeek') {
-            // For week view, show the week range
             const startOfWeek = new Date(currentDate);
             const day = startOfWeek.getDay();
             startOfWeek.setDate(currentDate.getDate() - day);
@@ -128,7 +246,6 @@ const CalendarPage = () => {
                 return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
             }
         } else {
-            // Month view
             return currentDate.toLocaleDateString('en-US', options);
         }
     };
@@ -215,7 +332,7 @@ const CalendarPage = () => {
                                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                                 initialView="dayGridMonth"
                                 headerToolbar={false}
-                                events={events}
+                                events={[...events, ...studyBlocks]}
                                 height="auto"
                                 aspectRatio={1.8}
                                 eventDisplay="block"
@@ -223,32 +340,63 @@ const CalendarPage = () => {
                                 moreLinkClick="popover"
                                 eventClick={(info) => {
                                     console.log('Event clicked:', info.event.title);
-                                    console.log('Course:', info.event.extendedProps.courseName);
-                                    // Placeholder for event click handling
+                                    if (info.event.extendedProps.courseName) {
+                                        console.log('Course:', info.event.extendedProps.courseName);
+                                    }
                                 }}
                                 dateClick={(info) => {
                                     console.log('Date clicked:', info.dateStr);
-                                    // Placeholder for date click handling
                                 }}
                                 eventDidMount={(info) => {
-                                    // Create custom tooltip with more detailed information
                                     const event = info.event;
+                                    const isPending = event.extendedProps.isPending;
                                     const courseName = event.extendedProps.courseName || 'No course';
                                     const eventType = event.extendedProps.type || 'Other';
 
-                                    // Create tooltip element
+                                    if (isPending) {
+                                        info.el.style.opacity = '0.7';
+                                        info.el.style.border = '2px dashed #000';
+                                    }
+
                                     const tooltip = document.createElement('div');
                                     tooltip.className = 'event-detailed-tooltip';
-                                    tooltip.innerHTML = `
+
+                                    let tooltipContent = `
                                         <div class="tooltip-header" style="background: ${event.backgroundColor}">
                                             <div class="tooltip-type">${eventType.toUpperCase()}</div>
                                             <div class="tooltip-title">${event.title}</div>
                                         </div>
                                         <div class="tooltip-body">
+                                    `;
+
+                                    if (isPending) {
+                                        tooltipContent += `
+                                            <div class="tooltip-detail tooltip-pending">
+                                                <span class="tooltip-label">Status:</span>
+                                                <span class="tooltip-value">Pending Confirmation</span>
+                                            </div>
+                                        `;
+                                    }
+
+                                    if (event.extendedProps.taskTitle) {
+                                        tooltipContent += `
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Task:</span>
+                                                <span class="tooltip-value">${event.extendedProps.taskTitle}</span>
+                                            </div>
+                                        `;
+                                    }
+
+                                    if (courseName !== 'No course') {
+                                        tooltipContent += `
                                             <div class="tooltip-detail">
                                                 <span class="tooltip-label">Course:</span>
                                                 <span class="tooltip-value">${courseName}</span>
                                             </div>
+                                        `;
+                                    }
+
+                                    tooltipContent += `
                                             <div class="tooltip-detail">
                                                 <span class="tooltip-label">Date:</span>
                                                 <span class="tooltip-value">${new Date(event.start).toLocaleString('en-US', {
@@ -259,16 +407,25 @@ const CalendarPage = () => {
                                                     minute: '2-digit'
                                                 })}</span>
                                             </div>
-                                        </div>
                                     `;
 
-                                    // Position tooltip and handle hover events
+                                    if (event.extendedProps.duration) {
+                                        tooltipContent += `
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Duration:</span>
+                                                <span class="tooltip-value">${event.extendedProps.duration} minutes</span>
+                                            </div>
+                                        `;
+                                    }
+
+                                    tooltipContent += `</div>`;
+                                    tooltip.innerHTML = tooltipContent;
+
                                     document.body.appendChild(tooltip);
                                     tooltip.style.position = 'absolute';
                                     tooltip.style.display = 'none';
                                     tooltip.style.zIndex = 10000;
 
-                                    // Show tooltip on hover
                                     info.el.addEventListener('mouseenter', () => {
                                         const rect = info.el.getBoundingClientRect();
                                         tooltip.style.left = `${rect.left + window.scrollX}px`;
@@ -276,31 +433,180 @@ const CalendarPage = () => {
                                         tooltip.style.display = 'block';
                                     });
 
-                                    // Hide tooltip when mouse leaves
                                     info.el.addEventListener('mouseleave', () => {
                                         tooltip.style.display = 'none';
                                     });
 
-                                    // Clean up tooltip when event is removed
                                     info.el.addEventListener('remove', () => {
                                         if (tooltip && tooltip.parentNode) {
                                             tooltip.parentNode.removeChild(tooltip);
                                         }
                                     });
                                 }}
-                                noEventsContent={() => (
-                                    <div className="no-events-message">
-                                        <p>No events to display</p>
-                                    </div>
-                                )}
+                                noEventsText="No events to display"
                             />
                         )}
                     </div>
+
+                    {showStudyBlocksModal && (
+                        <div className="study-blocks-modal-overlay">
+                            <div className="study-blocks-modal">
+                                <div className="study-blocks-modal-header">
+                                    <h2>Confirm Study Blocks</h2>
+                                    <button
+                                        className="close-button"
+                                        onClick={() => setShowStudyBlocksModal(false)}
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                                <div className="study-blocks-modal-content">
+                                    <p>Our algorithm has generated study blocks for your upcoming tasks. Please review and confirm them.</p>
+
+                                    {Object.values(taskBlocksMap).length > 0 ? (
+                                        <div className="study-blocks-list">
+                                            {Object.values(taskBlocksMap).map((taskData) => (
+                                                <div key={taskData.taskId} className="study-blocks-task">
+                                                    <div className="study-blocks-task-header">
+                                                        <span className="task-title">{taskData.taskTitle}</span>
+                                                        <span className="block-count">
+                                                            {taskData.blocks.length} block{taskData.blocks.length !== 1 ? 's' : ''}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="study-blocks-details">
+                                                        {taskData.blocks.map((block, index) => {
+                                                            const blockId = `${taskData.taskId}-${new Date(block.start_time).getTime()}`;
+                                                            return (
+                                                                <div key={index} className="study-block-item">
+                                                                    <label className="checkbox-container block-checkbox">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selectedBlocks[blockId] || false}
+                                                                            onChange={() => {
+                                                                                setSelectedBlocks(prev => ({
+                                                                                    ...prev,
+                                                                                    [blockId]: !prev[blockId]
+                                                                                }));
+
+                                                                                const updatedBlocks = studyBlocks.map(studyBlock => {
+                                                                                    const studyBlockId = `${studyBlock.extendedProps.taskId}-${new Date(studyBlock.start).getTime()}`;
+                                                                                    if (studyBlockId === blockId) {
+                                                                                        return {
+                                                                                            ...studyBlock,
+                                                                                            display: !selectedBlocks[blockId] ? 'block' : 'none'
+                                                                                        };
+                                                                                    }
+                                                                                    return studyBlock;
+                                                                                });
+                                                                                setStudyBlocks(updatedBlocks);
+                                                                            }}
+                                                                        />
+                                                                        <span className="checkmark"></span>
+                                                                        <div className="study-block-info">
+                                                                            <div className="study-block-time">
+                                                                                {new Date(block.start_time).toLocaleDateString('en-US', {
+                                                                                    weekday: 'short',
+                                                                                    month: 'short',
+                                                                                    day: 'numeric'
+                                                                                })}
+                                                                                {' '}
+                                                                                {block.startTimeFormatted} - {block.endTimeFormatted}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="study-block-duration">
+                                                                            {block.duration} min
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p>No study blocks were generated. Try adjusting your task deadlines or study preferences.</p>
+                                    )}
+                                </div>
+                                <div className="study-blocks-modal-footer">
+                                    <button
+                                        className="secondary-button"
+                                        onClick={() => {
+                                            setShowStudyBlocksModal(false);
+                                            setStudyBlocks([]);
+                                            setHasUnsavedBlocks(false);
+                                        }}
+                                    >
+                                        Discard All
+                                    </button>
+                                    <button
+                                        className="primary-button"
+                                        onClick={async () => {
+                                            try {
+                                                const selectedBlockIds = Object.entries(selectedBlocks)
+                                                    .filter(([_, isSelected]) => isSelected)
+                                                    .map(([blockId, _]) => blockId);
+
+                                                if (selectedBlockIds.length === 0) {
+                                                    setShowStudyBlocksModal(false);
+                                                    setStudyBlocks([]);
+                                                    setHasUnsavedBlocks(false);
+                                                    return;
+                                                }
+
+                                                const response = await axios.post(
+                                                    `${import.meta.env.VITE_SERVER_URL}/task/schedule`,
+                                                    {
+                                                        schedulingPeriodDays: 14,
+                                                        saveToCalendar: true,
+                                                        blockIds: selectedBlockIds
+                                                    },
+                                                    { withCredentials: true }
+                                                );
+
+                                                if (response.status === 200 && response.data.success) {
+                                                    await fetchCalendarEvents();
+
+                                                    setStudyBlocks([]);
+                                                    setHasUnsavedBlocks(false);
+                                                    setShowStudyBlocksModal(false);
+                                                    setTaskBlocksMap({});
+                                                    setSelectedBlocks({});
+                                                }
+                                            } catch (err) {
+                                                console.error('Error saving study blocks:', err);
+                                                alert('Failed to save study blocks. Please try again.');
+                                            }
+                                        }}
+                                    >
+                                        Confirm Selected
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                 </div>
             </div>
         </div>
     );
+};
+
+export const usePromptIfUnsaved = (hasUnsavedChanges) => {
+    useEffect(() => {
+        const handleBeforeNavigate = (e) => {
+            if (hasUnsavedChanges && !window.confirm('You have unsaved study blocks. If you leave now, they will be discarded. Are you sure you want to leave?')) {
+                e.preventDefault();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeNavigate);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeNavigate);
+        };
+    }, [hasUnsavedChanges]);
 };
 
 export default CalendarPage;
