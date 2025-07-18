@@ -1,0 +1,518 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+    backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
+    animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(119, 53, 226, 0.3) transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3));
+    border-radius: 10px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.75rem 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.01em;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    line-height: 1;
+}
+
+.close-button:hover {
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.05);
+}
+
+.modal-body {
+    padding: 1.5rem 2rem;
+}
+
+.preferences-section {
+    margin-bottom: 2.5rem;
+    position: relative;
+}
+
+.preferences-section h3 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin: 0 0 1.25rem 0;
+    color: #333;
+    font-family: "Poppins", sans-serif;
+    display: flex;
+    align-items: center;
+}
+
+.section-description {
+    font-size: 0.95rem;
+    color: #666;
+    margin: 0 0 1.5rem 0;
+    font-family: "Poppins", sans-serif;
+    line-height: 1.5;
+}
+
+.time-range-container {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.02);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
+    position: relative;
+}
+
+.time-input-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.time-input-group label {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 0.75rem;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+}
+
+.time-input-group input,
+.time-input-group select {
+    padding: 0.85rem 1rem;
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
+    border-radius: 8px;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.2s;
+    font-size: 1rem;
+    background-color: white;
+}
+
+.time-input-group input:focus,
+.time-input-group select:focus {
+    outline: none;
+    border-color: rgba(119, 53, 226, 0.5);
+    box-shadow: 0 0 0 3px rgba(119, 53, 226, 0.15);
+}
+
+.day-select select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237735e2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem top 50%;
+    background-size: 0.65rem auto;
+    padding-right: 2rem;
+    border: 1px solid rgba(119, 53, 226, 0.3);
+    border-radius: 8px;
+}
+
+.day-select select:focus {
+    border-color: rgba(119, 53, 226, 0.6);
+    box-shadow: 0 0 0 3px rgba(119, 53, 226, 0.15);
+    outline: none;
+}
+
+.time-range-container .day-select {
+    flex: 0.8;
+    min-width: 120px;
+}
+
+.days-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.day-preference {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    padding: 0.9rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.day-preference.enabled {
+    border-color: rgba(119, 53, 226, 0.2);
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 12px rgba(119, 53, 226, 0.08);
+    transform: translateY(-2px);
+}
+
+.day-preference.disabled {
+    opacity: 0.75;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+.day-preference.enabled::before {
+    opacity: 1;
+}
+
+.day-header {
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.day-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    width: 100%;
+}
+
+/* Custom checkbox styling */
+.day-toggle input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.day-toggle .checkbox-custom {
+    position: relative;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    margin-right: 0.75rem;
+    transition: all 0.2s;
+}
+
+.day-toggle input:checked ~ .checkbox-custom {
+    background: var(--main-gradient);
+    border-color: transparent;
+}
+
+.day-toggle .checkbox-custom:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.day-toggle input:checked ~ .checkbox-custom:after {
+    display: block;
+}
+
+.day-name {
+    font-weight: 500;
+    font-family: "Poppins", sans-serif;
+    font-size: 0.9rem;
+    color: #333;
+    transition: color 0.2s;
+}
+
+.day-preference.enabled .day-name {
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.day-time-range {
+    margin-bottom: 0.5rem;
+}
+
+.day-time-range:last-child {
+    margin-bottom: 0.75rem;
+}
+
+.day-times {
+    display: flex;
+    gap: 0.5rem; /* Reduced gap between inputs */
+    animation: fadeIn 0.3s ease-out;
+    flex-direction: row;
+    width: 100%; /* Ensure the container takes full width of the card */
+    box-sizing: border-box; /* Include padding in width calculation */
+    position: relative;
+}
+
+/* Add specific styling for time inputs within day cards */
+.day-preference .time-input-group {
+    flex: 1;
+    min-width: 0; /* Allow flex items to shrink below content size */
+}
+
+.day-preference .time-input-group label {
+    font-size: 0.75rem; /* Smaller font size */
+    margin-bottom: 0.4rem; /* Reduced margin */
+    white-space: nowrap; /* Prevent label from wrapping */
+}
+
+.day-preference .time-input-group input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.4rem 0.4rem; /* Further reduced padding */
+    font-size: 0.7rem; /* Even smaller font size */
+    min-width: 0; /* Allow input to shrink */
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    gap: 1rem;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    z-index: 10;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.cancel-button, .save-button {
+    padding: 0.85rem 1.75rem;
+    border-radius: 8px;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.cancel-button {
+    background: none;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #555;
+}
+
+.cancel-button:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.save-button {
+    background: var(--main-gradient);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 10px rgba(119, 53, 226, 0.2);
+}
+
+.save-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(119, 53, 226, 0.25);
+}
+
+.save-button:active {
+    transform: translateY(0);
+}
+
+.error-message {
+    background-color: rgba(229, 62, 62, 0.1);
+    border: 1px solid rgba(229, 62, 62, 0.3);
+    color: #e53e3e;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin: 0 2rem 1rem;
+    font-size: 0.9rem;
+    font-family: "Poppins", sans-serif;
+    text-align: center;
+}
+
+/* Add button styling */
+.add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    margin-top: 1rem;
+    background: none;
+    border: 1px dashed rgba(119, 53, 226, 0.3);
+    border-radius: 8px;
+    color: #7735e2;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.add-button:hover {
+    background-color: rgba(119, 53, 226, 0.05);
+    border-color: rgba(119, 53, 226, 0.5);
+    transform: translateY(-1px);
+}
+
+.add-button:active {
+    transform: translateY(0);
+}
+
+.add-time-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    background: none;
+    border: 1px dashed rgba(119, 53, 226, 0.3);
+    border-radius: 6px;
+    color: #7735e2;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.add-time-button:hover {
+    background-color: rgba(119, 53, 226, 0.05);
+    border-color: rgba(119, 53, 226, 0.5);
+}
+
+/* Remove button styling */
+.remove-button {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #666;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+
+.remove-button:hover {
+    background-color: #f8f0ff;
+    color: #e53e3e;
+    border-color: rgba(229, 62, 62, 0.3);
+    transform: scale(1.05);
+}
+
+.remove-time-button {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #666;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.remove-time-button:hover {
+    background-color: #f8f0ff;
+    color: #e53e3e;
+    border-color: rgba(229, 62, 62, 0.3);
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

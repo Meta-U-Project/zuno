@@ -87,20 +87,47 @@ const deleteTask = async (req, res) => {
 };
 
 
-const scheduleStudySessions = async (req, res) => {
+const checkTasksNeedingScheduling = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { schedulingPeriodDays, saveToCalendar = false } = req.body;
 
         const eligibleTasks = await getEligibleTasks(userId);
 
-        if (eligibleTasks.length === 0) {
+        const needsScheduling = eligibleTasks.length > 0;
+
+        res.status(200).json({
+            needsScheduling,
+            taskCount: eligibleTasks.length
+        });
+    } catch (error) {
+        console.error('Error checking tasks needing scheduling:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to check tasks needing scheduling'
+        });
+    }
+};
+
+const scheduleStudySessions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { schedulingPeriodDays, saveToCalendar = false, taskIds = [], blockIds = [] } = req.body;
+
+        const allEligibleTasks = await getEligibleTasks(userId);
+
+        if (allEligibleTasks.length === 0) {
             return res.status(200).json({
                 success: true,
                 message: 'No eligible tasks found that require study blocks',
                 scheduledBlocks: [],
                 summary: { totalTasks: 0, totalBlocks: 0, totalStudyTime: 0 }
             });
+        }
+
+        let eligibleTasks = allEligibleTasks;
+        if (saveToCalendar && taskIds.length > 0) {
+            eligibleTasks = allEligibleTasks.filter(task => taskIds.includes(task.id));
+            console.log(`Filtered to ${eligibleTasks.length} tasks from ${taskIds.length} provided task IDs`);
         }
 
         const startDate = new Date();
@@ -114,7 +141,7 @@ const scheduleStudySessions = async (req, res) => {
             ));
 
             const minimumEndDate = new Date();
-            minimumEndDate.setDate(minimumEndDate.getDate() + 14); // Minimum 14 days
+            minimumEndDate.setDate(minimumEndDate.getDate() + 14);
 
             endDate = furthestDeadline > minimumEndDate ? furthestDeadline : minimumEndDate;
         } else if (schedulingPeriodDays) {
@@ -143,7 +170,24 @@ const scheduleStudySessions = async (req, res) => {
 
         let savedEvents = [];
         if (saveToCalendar && scheduledBlocks.length > 0) {
-            savedEvents = await saveStudyBlocks(scheduledBlocks);
+            let blocksToSave = [];
+
+            if (blockIds && blockIds.length > 0) {
+                blocksToSave = scheduledBlocks.filter(block => {
+                    const blockId = `${block.taskId}-${new Date(block.start_time).getTime()}`;
+                    return blockIds.includes(blockId);
+                });
+                console.log(`Filtered to ${blocksToSave.length} blocks from ${blockIds.length} provided block IDs`);
+            } else if (taskIds.length > 0) {
+                blocksToSave = scheduledBlocks.filter(block => taskIds.includes(block.taskId));
+            } else {
+                blocksToSave = scheduledBlocks;
+            }
+
+            if (blocksToSave.length > 0) {
+                savedEvents = await saveStudyBlocks(blocksToSave);
+                console.log(`Saved ${savedEvents.length} study blocks to calendar`);
+            }
         }
 
         const tasksWithScheduling = eligibleTasks.map(task => {
@@ -157,7 +201,23 @@ const scheduleStudySessions = async (req, res) => {
                 requiredStudyTime: requiredStudyTime / 60,
                 scheduledTime,
                 blocksCount: taskBlocks.length,
-                fullyScheduled: scheduledTime >= requiredStudyTime
+                fullyScheduled: scheduledTime >= requiredStudyTime,
+                blocks: taskBlocks.map(block => ({
+                    start_time: block.start_time,
+                    end_time: block.end_time,
+                    duration: calculateDuration(block),
+                    day: block.start_time.toISOString().split('T')[0],
+                    startTimeFormatted: block.start_time.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    }),
+                    endTimeFormatted: block.end_time.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    })
+                }))
             };
         });
 
@@ -191,5 +251,6 @@ module.exports = {
     createTask,
     updateTask,
     deleteTask,
-    scheduleStudySessions
+    scheduleStudySessions,
+    checkTasksNeedingScheduling
 };

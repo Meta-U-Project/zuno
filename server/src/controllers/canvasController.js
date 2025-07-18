@@ -73,15 +73,32 @@ const fetchCalendarEventsFromTasks = async (req, res) => {
             }
         });
 
-        const transformedEvents = calendarEvents.map(event => ({
-            id: event.id,
-            title: event.task.title,
-            date: event.start_time,
-            type: 'assignment',
-            courseId: event.task.courseId,
-            courseName: event.task.course.course_name,
-            url: ''
-        }));
+        const transformedEvents = calendarEvents.map(event => {
+            const isStudyBlock = event.location === 'Study Session';
+
+            const taskType = isStudyBlock ? 'task_block' : event.task.type.toLowerCase();
+
+            const formattedTime = isStudyBlock ?
+                new Date(event.start_time).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                }) : '';
+
+            const title = isStudyBlock ?
+                `Study Block for ${event.task.title} (${formattedTime})` :
+                event.task.title;
+
+            return {
+                id: event.id,
+                title: title,
+                date: event.start_time,
+                type: taskType,
+                courseId: event.task.courseId,
+                courseName: event.task.course.course_name,
+                url: ''
+            };
+        });
 
         res.status(200).json(transformedEvents);
     } catch (err) {

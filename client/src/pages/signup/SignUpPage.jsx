@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./SignUpPage.css";
 import Navbar from "../../components/Navbar";
@@ -69,9 +69,34 @@ const SignUpPage = () => {
             setIsLoading(false);
             setIsRedirecting(true);
 
-            setTimeout(() => {
-                navigate('/login');
-            }, 2000);
+            try {
+                const loginResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: formData.email,
+                        password: formData.password
+                    }),
+                });
+
+                if (loginResponse.ok) {
+                    setTimeout(() => {
+                        navigate('/connect', { state: { fromSignup: true } });
+                    }, 2000);
+                } else {
+                    setTimeout(() => {
+                        navigate('/login');
+                    }, 2000);
+                }
+            } catch (loginErr) {
+                console.error('Auto-login error:', loginErr);
+                setTimeout(() => {
+                    navigate('/login');
+                }, 2000);
+            }
 
         } catch (err) {
             console.error('Sign up error:', err);
@@ -83,7 +108,7 @@ const SignUpPage = () => {
 
     return (
         <div>
-            {isRedirecting && <Loading message="Account created successfully! Redirecting to login..." />}
+            {isRedirecting && <Loading message="Account created successfully! Redirecting you to connect your accounts..." />}
             <Navbar />
             <div className="signup">
                 <div className="signup-header-container">

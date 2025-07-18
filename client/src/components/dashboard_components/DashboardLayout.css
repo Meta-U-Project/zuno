@@ -162,19 +162,23 @@
 .calendar-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
+    gap: 0.15rem;
+    margin-bottom: 0rem;
+    width: 100%;
+    min-width: 0;
 }
 
 .day-header {
     text-align: center;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 500;
     color: #4a5568;
-    padding: 0.5rem 0.25rem;
+    padding: 0.4rem 0.1rem;
     font-family: "Poppins", sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0px;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .calendar-days {
@@ -229,9 +233,9 @@
 }
 
 .day-event {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    position: relative;
+    width: 100%;
+    height: 18px;
     padding: 0.2rem;
     background: rgba(119, 53, 226, 0.1);
     border-radius: 4px;
@@ -246,20 +250,51 @@
 }
 
 .event-dot {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 6px;
     height: 6px;
     background: var(--purple);
     border-radius: 50%;
-    flex-shrink: 0;
 }
 
-.event-title {
-    color: #2d3748;
+.event-tooltip {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid transparent;
+    background: linear-gradient(white, white) padding-box, var(--main-gradient) border-box;
+    border-radius: 4px;
+    padding: 0.5rem;
+    width: max-content;
+    max-width: 200px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    pointer-events: none;
+}
+
+.day-event:hover .event-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tooltip-title {
     font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
+    font-size: 0.7rem;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
+}
+
+.tooltip-course {
+    font-size: 0.65rem;
+    color: #718096;
 }
 
 .more-events {
@@ -276,40 +311,61 @@
     color: var(--purple);
 }
 
+.tasks-content {
+    height: 250px;
+    overflow: hidden;
+}
+
 .task-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
+    padding: 0.75rem;
     background: #f7fafc;
     border-radius: 6px;
     border-left: 3px solid var(--purple);
+    height: 60px;
+    overflow: hidden;
+}
+
+.task-info {
+    overflow: hidden;
+    flex: 1;
 }
 
 .task-info h4 {
     color: #2d3748;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.2rem 0;
     font-family: "Poppins", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
 }
 
 .task-info p {
     color: #718096;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     margin: 0;
     font-family: "Poppins", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .deadline-badge {
     background: var(--main-gradient);
     color: white;
-    padding: 0.25rem 0.75rem;
+    padding: 0.2rem 0.6rem;
     border-radius: 12px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 500;
     white-space: nowrap;
     font-family: "Poppins", sans-serif;
+    min-width: 70px;
+    text-align: center;
 }
 
 .deadline-badge.overdue {
@@ -361,7 +417,7 @@
         "courses notifs notes"
         "tasks study notes";
     gap: 1.5rem;
-    padding: 2rem;
+    padding: 0rem 1rem 1rem 1rem;
     font-family: "Poppins", sans-serif;
 }
 

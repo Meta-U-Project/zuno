@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./Dashboard.css";
 import Loading from "../../components/Loading";
 import { PAGES } from "../../utils/constants";
 import DashboardLayout from "../../components/dashboard_components/DashboardLayout";
 import Sidebar from "../../components/dashboard_components/Sidebar";
+import StudyPreferencesModal from "../../components/dashboard_components/StudyPreferencesModal";
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [userFirstName, setUserFirstName] = useState("User");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
     const handleLogout = async () => {
         try {
@@ -40,9 +43,13 @@ const Dashboard = () => {
     };
 
     const handleViewProfile = () => {
-        console.log('View Profile clicked - Coming soon!');
         setShowProfileDropdown(false);
-        // Future profile view functionality
+        navigate('/profile');
+    };
+
+    const handleSavePreferences = (preferences) => {
+        console.log('Saving preferences:', preferences);
+        localStorage.setItem('hasSetStudyPreferences', 'true');
     };
 
     useEffect(() => {
@@ -63,6 +70,15 @@ const Dashboard = () => {
 
                 const userData = await response.json();
                 setUserFirstName(userData.firstName || "User");
+
+                const hasPreferences = localStorage.getItem('hasSetStudyPreferences') === 'true';
+
+                const isFromSignup = location.state?.fromSignup;
+                const openPreferences = location.state?.openPreferences;
+
+                if (isFromSignup || !hasPreferences || openPreferences) {
+                    setShowPreferencesModal(true);
+                }
             } catch (error) {
                 console.error('Error fetching user profile:', error);
                 setError('Failed to load user profile');
@@ -75,7 +91,7 @@ const Dashboard = () => {
         };
 
         fetchUserProfile();
-    }, [navigate]);
+    }, [navigate, location.state]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -158,6 +174,12 @@ const Dashboard = () => {
                 </div>
                 <DashboardLayout />
             </div>
+
+            <StudyPreferencesModal
+                isOpen={showPreferencesModal}
+                onClose={() => setShowPreferencesModal(false)}
+                onSave={handleSavePreferences}
+            />
         </div>
     );
 };

@@ -35,7 +35,7 @@ const DashboardLayout = () => {
                     setAssignments(upcomingAssignments);
                 }
 
-                const calendarResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/calendar-events`, {
+                const calendarResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
                     credentials: 'include',
                 });
                 if (calendarResponse.ok) {
@@ -152,9 +152,12 @@ const DashboardLayout = () => {
                                             <div className="day-number">{currentDay.getDate()}</div>
                                             <div className="day-events">
                                                 {dayEvents.slice(0, 3).map((event, eventIndex) => (
-                                                    <div key={eventIndex} className="day-event" title={`${event.title} - ${event.courseName}`}>
+                                                    <div key={eventIndex} className="day-event">
                                                         <div className="event-dot"></div>
-                                                        <span className="event-title">{event.title}</span>
+                                                        <div className="event-tooltip">
+                                                            <div className="tooltip-title">{event.title}</div>
+                                                            <div className="tooltip-course">{event.courseName}</div>
+                                                        </div>
                                                     </div>
                                                 ))}
                                                 {dayEvents.length > 3 && (
@@ -232,9 +235,9 @@ const DashboardLayout = () => {
                     <h3>Upcoming Tasks</h3>
                     <a href="#" className="view-all-link">view all</a>
                 </div>
-                <div className="card-content">
+                <div className="card-content tasks-content">
                     {assignments.length > 0 ? (
-                        assignments.map((assignment, index) => (
+                        assignments.slice(0, 2).map((assignment, index) => (
                             <div key={index} className="task-item">
                                 <div className="task-info">
                                     <h4>{assignment.title}</h4>
