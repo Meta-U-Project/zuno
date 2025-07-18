@@ -224,7 +224,6 @@ async function syncCanvasData(user) {
                 });
             }
         }
-        // Sync class/lecture times from ICS calendar using the new Lecture model
         for (const course of courseData) {
             try {
                 const icsUrl = course.calendar?.ics;
@@ -238,16 +237,15 @@ async function syncCanvasData(user) {
 
                 const lectureEvents = Object.values(parsedEvents).filter(ev =>
                     ev.type === 'VEVENT' &&
-                    ev.summary &&
-                    !ev.summary.toLowerCase().includes('assignment') &&
-                    !ev.description?.includes('Due')
+                    typeof ev.uid === 'string' &&
+                    !ev.uid.startsWith('event-assignment-')
                 );
+
 
                 for (const event of lectureEvents) {
                     const startTime = new Date(event.start);
                     const endTime = new Date(event.end || startTime.getTime() + 60 * 60 * 1000);
 
-                    // Check if we already have a lecture for this event
                     const existingLecture = await prisma.lecture.findFirst({
                         where: {
                             userId: user.id,

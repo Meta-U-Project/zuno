@@ -26,7 +26,7 @@ const CalendarPage = () => {
         quiz: { bg: '#00FF00', border: '#00FF00' },
         discussion: { bg: '#FF69B4', border: '#FF69B4' },
         task_block: { bg: '#808080', border: '#808080' },
-        class_session: { bg: '#0000FF', border: '#0000FF' },
+        class_session: { bg: '#1c79de', border: '#1c79de' },
     };
 
     const getEventColor = (type) => {
@@ -65,6 +65,8 @@ const CalendarPage = () => {
                         }
                     };
                 });
+
+                console.log(eventsResponse.data)
 
                 const transformedClassSessions = classSessionsResponse.data.map(session => {
                     const colors = getEventColor('class_session');
