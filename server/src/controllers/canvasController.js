@@ -122,29 +122,25 @@ const fetchAnnouncements = async (req, res) => {
 
 const fetchClassSessions = async (req, res) => {
     try {
-        const classSessions = await prisma.calendarEvent.findMany({
+        // Fetch lectures from the new Lecture model
+        const lectures = await prisma.lecture.findMany({
             where: {
-                userId: req.user.id,
-                type: 'CLASS_SESSION'
+                userId: req.user.id
             },
             include: {
-                task: {
-                    include: {
-                        course: true
-                    }
-                }
+                course: true
             }
         });
 
-        const transformedSessions = classSessions.map(session => {
+        const transformedSessions = lectures.map(lecture => {
             return {
-                id: session.id,
-                title: session.task.title,
-                start_time: session.start_time,
-                end_time: session.end_time,
-                location: session.location,
-                courseId: session.task.courseId,
-                courseName: session.task.course.course_name,
+                id: lecture.id,
+                title: lecture.title,
+                start_time: lecture.start_time,
+                end_time: lecture.end_time,
+                location: lecture.location || 'Classroom',
+                courseId: lecture.courseId,
+                courseName: lecture.course.course_name,
                 type: 'class_session'
             };
         });

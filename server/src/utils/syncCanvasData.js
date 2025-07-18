@@ -1,6 +1,8 @@
 const getCanvasApiClient = require('./canvasApi');
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
+const axios = require('axios');
+const ical = require('ical');
 const { calculatePriorityScore, estimateStudyTime } = require('./priorityUtils')
 
 async function syncCanvasData(user) {
@@ -53,16 +55,6 @@ async function syncCanvasData(user) {
                 } else {
                     type = 'ASSIGNMENT';
                 }
-
-                console.log('Assignment input:', {
-                    id: assignment.id,
-                    name: assignment.name,
-                    due_at: assignment.due_at,
-                    points_possible: assignment.points_possible,
-                    is_quiz_assignment: assignment.is_quiz_assignment,
-                    submission_types: assignment.submission_types
-                });
-
 
                 const priorityScore = calculatePriorityScore(assignment)
                 const studyTime = estimateStudyTime(assignment)
@@ -127,8 +119,6 @@ async function syncCanvasData(user) {
         for (const course of courseData) {
             const discussionsRes = await canvas.get(`/courses/${course.id}/discussion_topics?per_page=100`);
             const discussions = discussionsRes.data;
-
-            console.log(`Found ${discussions.length} discussions in course ${course.name}`);
 
             for (const discussion of discussions) {
                     const isGraded = discussion.assignment && discussion.assignment.points_possible > 0; // Fixed: > 0 instead of >= 0
@@ -234,81 +224,68 @@ async function syncCanvasData(user) {
                 });
             }
         }
-
-        // Sync class/lecture times from calendar
+        // Sync class/lecture times from ICS calendar using the new Lecture model
         for (const course of courseData) {
             try {
-                const calendarRes = await canvas.get(`/courses/${course.id}/calendar_events?per_page=100`);
-                const calendarEvents = calendarRes.data;
+                const icsUrl = course.calendar?.ics;
+                if (!icsUrl) {
+                    console.warn(`No ICS URL found for course: ${course.name}`);
+                    continue;
+                }
 
-                console.log(`Found ${calendarEvents.length} calendar events in course ${course.name}`);
+                const response = await axios.get(icsUrl);
+                const parsedEvents = ical.parseICS(response.data);
 
-                for (const event of calendarEvents) {
-                    if (event.context_type === 'Course' && !event.assignment_id) {
-                        const dummyTaskId = `class_session_${event.id.toString()}`;
+                const lectureEvents = Object.values(parsedEvents).filter(ev =>
+                    ev.type === 'VEVENT' &&
+                    ev.summary &&
+                    !ev.summary.toLowerCase().includes('assignment') &&
+                    !ev.description?.includes('Due')
+                );
 
-                        const existingTask = await prisma.task.findUnique({
-                            where: { id: dummyTaskId }
-                        });
+                for (const event of lectureEvents) {
+                    const startTime = new Date(event.start);
+                    const endTime = new Date(event.end || startTime.getTime() + 60 * 60 * 1000);
 
-                        if (!existingTask) {
-                            await prisma.task.create({
-                                data: {
-                                    id: dummyTaskId,
-                                    userId,
-                                    courseId: course.id.toString(),
-                                    title: event.title || `${course.name} Class Session`,
-                                    type: 'MEETING', // Keep as MEETING but don't display in UI
-                                    description: event.description || '',
-                                    priority: 0,
-                                    studyTime: 0,
-                                    requiresStudyBlock: false,
-                                    deadline: null,
-                                    completed: true
-                                }
-                            });
+                    // Check if we already have a lecture for this event
+                    const existingLecture = await prisma.lecture.findFirst({
+                        where: {
+                            userId: user.id,
+                            courseId: course.id.toString(),
+                            ical_uid: event.uid
                         }
+                    });
 
-                        if (event.start_at) {
-                            const existingEvent = await prisma.calendarEvent.findFirst({
-                                where: {
-                                    userId: user.id,
-                                    taskId: dummyTaskId,
-                                }
-                            });
-
-                            const startTime = new Date(event.start_at);
-                            const endTime = event.end_at ? new Date(event.end_at) : new Date(startTime.getTime() + 60 * 60 * 1000); // Default to 1 hour if no end time
-
-                            if (existingEvent) {
-                                await prisma.calendarEvent.update({
-                                    where: { id: existingEvent.id },
-                                    data: {
-                                        start_time: startTime,
-                                        end_time: endTime,
-                                        location: event.location_name || 'Classroom',
-                                        type: 'CLASS_SESSION'
-                                    }
-                                });
-                            } else {
-                                await prisma.calendarEvent.create({
-                                    data: {
-                                        userId: user.id,
-                                        taskId: dummyTaskId,
-                                        start_time: startTime,
-                                        end_time: endTime,
-                                        type: 'CLASS_SESSION',
-                                        is_group_event: false,
-                                        location: event.location_name || 'Classroom',
-                                        createdById: user.id
-                                    }
-                                });
+                    if (existingLecture) {
+                        // Update existing lecture
+                        await prisma.lecture.update({
+                            where: { id: existingLecture.id },
+                            data: {
+                                title: event.summary || `${course.name} Class Session`,
+                                description: event.description || '',
+                                location: event.location || 'Classroom',
+                                start_time: startTime,
+                                end_time: endTime
                             }
-                        }
+                        });
+                    } else {
+                        // Create new lecture
+                        await prisma.lecture.create({
+                            data: {
+                                userId: user.id,
+                                courseId: course.id.toString(),
+                                title: event.summary || `${course.name} Class Session`,
+                                description: event.description || '',
+                                location: event.location || 'Classroom',
+                                start_time: startTime,
+                                end_time: endTime,
+                                ical_uid: event.uid
+                            }
+                        });
                     }
                 }
             } catch (err) {
-                console.error(`Error syncing calendar events for course ${course.name}:`, err.message);
+                console.error(`Error syncing ICS for course ${course.name}:`, err.message);
             }
         }
 
@@ -334,8 +311,6 @@ async function syncCanvasData(user) {
                 engagement_score: 0
             }
         });
-
-        console.log(`Canvas sync complete for user: ${user.email}`);
     } catch (err) {
         console.error('Canvas sync error:', err.message);
     }

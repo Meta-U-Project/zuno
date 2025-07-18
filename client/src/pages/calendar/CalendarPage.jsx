@@ -26,7 +26,7 @@ const CalendarPage = () => {
         quiz: { bg: '#00FF00', border: '#00FF00' },
         discussion: { bg: '#FF69B4', border: '#FF69B4' },
         task_block: { bg: '#808080', border: '#808080' },
-        class_session: { bg: '#4169E1', border: '#4169E1' }, // Royal Blue for class sessions
+        class_session: { bg: '#0000FF', border: '#0000FF' },
     };
 
     const getEventColor = (type) => {
@@ -38,18 +38,15 @@ const CalendarPage = () => {
             setLoading(true);
             setError(null);
 
-            // Fetch regular calendar events
             const eventsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
                 withCredentials: true
             });
-            
-            // Fetch class sessions
+
             const classSessionsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/classsessions`, {
                 withCredentials: true
             });
 
             if (eventsResponse.status === 200 && classSessionsResponse.status === 200) {
-                // Transform regular events
                 const transformedEvents = eventsResponse.data.map(event => {
                     const eventType = event.type || 'other';
                     const colors = getEventColor(eventType);
@@ -68,11 +65,10 @@ const CalendarPage = () => {
                         }
                     };
                 });
-                
-                // Transform class sessions
+
                 const transformedClassSessions = classSessionsResponse.data.map(session => {
                     const colors = getEventColor('class_session');
-                    
+
                     return {
                         id: `class_${session.id}`,
                         title: session.title,
@@ -246,7 +242,7 @@ const CalendarPage = () => {
     };
 
     const handleAddEvent = () => {
-        console.log('Add Event clicked - Coming soon!');
+        //
     };
 
     const getCurrentTitle = () => {
@@ -368,15 +364,8 @@ const CalendarPage = () => {
                                 eventDisplay="block"
                                 dayMaxEvents={3}
                                 moreLinkClick="popover"
-                                eventClick={(info) => {
-                                    console.log('Event clicked:', info.event.title);
-                                    if (info.event.extendedProps.courseName) {
-                                        console.log('Course:', info.event.extendedProps.courseName);
-                                    }
-                                }}
-                                dateClick={(info) => {
-                                    console.log('Date clicked:', info.dateStr);
-                                }}
+
+
                                 eventDidMount={(info) => {
                                     const event = info.event;
                                     const isPending = event.extendedProps.isPending;
