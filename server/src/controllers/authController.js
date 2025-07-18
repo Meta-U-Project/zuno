@@ -14,7 +14,10 @@ const register = async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const user = await createUser(firstName, lastName, email, phone, school, hashed);
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({
+        id: user.id,
+        hasPreferences: false
+    }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     res.cookie('token', token, {
         httpOnly: true,
@@ -29,7 +32,8 @@ const register = async (req, res) => {
             id: user.id,
             firstName: user.firstName,
             lastName: user.lastName,
-            email: user.email
+            email: user.email,
+            hasPreferences: false
         }
     });
 };
@@ -42,7 +46,16 @@ const login = async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const preferredTimes = await prisma.preferredStudyTime.findMany({
+        where: { userId: user.id }
+    });
+
+    const hasPreferences = preferredTimes.length > 0;
+
+    const token = jwt.sign({
+        id: user.id,
+        hasPreferences
+    }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     res.cookie('token', token, {
         httpOnly: true,
@@ -63,7 +76,7 @@ const login = async (req, res) => {
 
     res.json({
         message: 'Logged in',
-        user: { id: user.id, email: user.email },
+        user: { id: user.id, email: user.email, hasPreferences },
         needsIntegration,
         integrations: {
             googleConnected,
@@ -81,7 +94,7 @@ const forgotPassword = async (req, res) => {
         const token = createPasswordResetToken({ _id: user.id, email: user.email, password: user.password });
         const url = createPasswordResetUrl(user.id, token);
         const mailOptions = passwordResetTemplate({ username: user.firstName, email: user.email }, url);
-        transporter.sendMail(mailOptions, (error, info) => {
+        transporter.sendMail(mailOptions, (error, _info) => {
             if (error) {
                 console.error('Error sending email:', error);
                 return res.status(500).json({ message: 'Error sending email' });
@@ -138,7 +151,7 @@ const resetPassword = async (req, res) => {
         }
     };
 
-const logout = (req, res) => {
+const logout = (_req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logged out' });
 };
