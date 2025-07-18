@@ -26,10 +26,11 @@ const CalendarPage = () => {
         quiz: { bg: '#00FF00', border: '#00FF00' },
         discussion: { bg: '#FF69B4', border: '#FF69B4' },
         task_block: { bg: '#808080', border: '#808080' },
+        class_session: { bg: '#4169E1', border: '#4169E1' }, // Royal Blue for class sessions
     };
 
     const getEventColor = (type) => {
-        return eventColors[type] || eventColors.other;
+        return eventColors[type] || { bg: '#808080', border: '#808080' }; // Default gray color for unknown event types
     };
 
     const fetchCalendarEvents = useCallback(async () => {
@@ -37,12 +38,19 @@ const CalendarPage = () => {
             setLoading(true);
             setError(null);
 
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
+            // Fetch regular calendar events
+            const eventsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
+                withCredentials: true
+            });
+            
+            // Fetch class sessions
+            const classSessionsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/classsessions`, {
                 withCredentials: true
             });
 
-            if (response.status === 200) {
-                const transformedEvents = response.data.map(event => {
+            if (eventsResponse.status === 200 && classSessionsResponse.status === 200) {
+                // Transform regular events
+                const transformedEvents = eventsResponse.data.map(event => {
                     const eventType = event.type || 'other';
                     const colors = getEventColor(eventType);
 
@@ -60,8 +68,30 @@ const CalendarPage = () => {
                         }
                     };
                 });
+                
+                // Transform class sessions
+                const transformedClassSessions = classSessionsResponse.data.map(session => {
+                    const colors = getEventColor('class_session');
+                    
+                    return {
+                        id: `class_${session.id}`,
+                        title: session.title,
+                        start: session.start_time,
+                        end: session.end_time,
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        textColor: '#ffffff',
+                        extendedProps: {
+                            courseId: session.courseId,
+                            courseName: session.courseName,
+                            type: 'class_session',
+                            location: session.location
+                        }
+                    };
+                });
 
-                setEvents(transformedEvents);
+                // Combine both types of events
+                setEvents([...transformedEvents, ...transformedClassSessions]);
             }
         } catch (err) {
             console.error('Error fetching calendar events:', err);

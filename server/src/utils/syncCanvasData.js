@@ -47,6 +47,7 @@ async function syncCanvasData(user) {
                     continue;
                 }
 
+                let type;
                 if (assignment.is_quiz_assignment) {
                     type = 'QUIZ';
                 } else {
@@ -66,7 +67,7 @@ async function syncCanvasData(user) {
                 const priorityScore = calculatePriorityScore(assignment)
                 const studyTime = estimateStudyTime(assignment)
 
-                const task = await prisma.task.upsert({
+                await prisma.task.upsert({
                     where: { id: assignment.id.toString() },
                     update: {
                         title: assignment.name,
@@ -233,6 +234,84 @@ async function syncCanvasData(user) {
                 });
             }
         }
+
+        // Sync class/lecture times from calendar
+        for (const course of courseData) {
+            try {
+                const calendarRes = await canvas.get(`/courses/${course.id}/calendar_events?per_page=100`);
+                const calendarEvents = calendarRes.data;
+
+                console.log(`Found ${calendarEvents.length} calendar events in course ${course.name}`);
+
+                for (const event of calendarEvents) {
+                    if (event.context_type === 'Course' && !event.assignment_id) {
+                        const dummyTaskId = `class_session_${event.id.toString()}`;
+
+                        const existingTask = await prisma.task.findUnique({
+                            where: { id: dummyTaskId }
+                        });
+
+                        if (!existingTask) {
+                            await prisma.task.create({
+                                data: {
+                                    id: dummyTaskId,
+                                    userId,
+                                    courseId: course.id.toString(),
+                                    title: event.title || `${course.name} Class Session`,
+                                    type: 'MEETING', // Keep as MEETING but don't display in UI
+                                    description: event.description || '',
+                                    priority: 0,
+                                    studyTime: 0,
+                                    requiresStudyBlock: false,
+                                    deadline: null,
+                                    completed: true
+                                }
+                            });
+                        }
+
+                        if (event.start_at) {
+                            const existingEvent = await prisma.calendarEvent.findFirst({
+                                where: {
+                                    userId: user.id,
+                                    taskId: dummyTaskId,
+                                }
+                            });
+
+                            const startTime = new Date(event.start_at);
+                            const endTime = event.end_at ? new Date(event.end_at) : new Date(startTime.getTime() + 60 * 60 * 1000); // Default to 1 hour if no end time
+
+                            if (existingEvent) {
+                                await prisma.calendarEvent.update({
+                                    where: { id: existingEvent.id },
+                                    data: {
+                                        start_time: startTime,
+                                        end_time: endTime,
+                                        location: event.location_name || 'Classroom',
+                                        type: 'CLASS_SESSION'
+                                    }
+                                });
+                            } else {
+                                await prisma.calendarEvent.create({
+                                    data: {
+                                        userId: user.id,
+                                        taskId: dummyTaskId,
+                                        start_time: startTime,
+                                        end_time: endTime,
+                                        type: 'CLASS_SESSION',
+                                        is_group_event: false,
+                                        location: event.location_name || 'Classroom',
+                                        createdById: user.id
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(`Error syncing calendar events for course ${course.name}:`, err.message);
+            }
+        }
+
 
         // Sync analytics
         const tasks = await prisma.task.findMany({

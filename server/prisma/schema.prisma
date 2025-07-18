@@ -66,6 +66,7 @@ enum EventType {
   TASK_BLOCK
   GROUP_SESSION
   AVAILABILITY
+  CLASS_SESSION
 }
 
 enum NotificationType {
