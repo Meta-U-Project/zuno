@@ -24,3 +24,8 @@ rules.txt
 *.njsproj
 *.sln
 *.sw?
+
+.env
+
+
+src/pages/tasks/TasksPage.css

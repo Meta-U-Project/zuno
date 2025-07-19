@@ -30,7 +30,7 @@ const Sidebar = () => {
     const handleNavigation = (item) => {
         setActiveItem(item.id);
         // For now, only certain pages navigation works
-        if (item.id === "dashboard" || item.id === "calendar") {
+        if (item.id === "dashboard" || item.id === "calendar" || item.id === "tasks") {
             navigate(item.path);
         } else {
             // Placeholder for future navigation

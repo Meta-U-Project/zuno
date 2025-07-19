@@ -191,10 +191,37 @@ const updateUserProfile = async (req, res) => {
     }
 };
 
+const getUserTasks = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const tasks = await prisma.task.findMany({
+            where: { userId },
+            orderBy: [
+                { deadline: 'asc' },
+                { createdAt: 'desc' }
+            ],
+            include: {
+                course: {
+                    select: {
+                        course_name: true
+                    }
+                }
+            }
+        });
+
+        res.json(tasks);
+    } catch (error) {
+        console.error('Error fetching user tasks:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getIntegrations,
     getStudyPreferences,
     saveStudyPreferences,
-    updateUserProfile
+    updateUserProfile,
+    getUserTasks
 };
