@@ -18,7 +18,9 @@ const TasksPage = () => {
         type: "ASSIGNMENT",
         description: "",
         priorityLevel: "medium",
-        deadline: new Date().toISOString().split('T')[0]
+        deadline: new Date().toISOString().split('T')[0],
+        addToCalendar: false,
+        scheduleStudyBlocks: false
     });
     const [editingTask, setEditingTask] = useState(null);
     const [showEditTaskModal, setShowEditTaskModal] = useState(false);
@@ -160,12 +162,30 @@ const TasksPage = () => {
 
             const taskData = {
                 ...newTask,
-                priority: priorityScore
+                priority: priorityScore,
+                requiresStudyBlock: newTask.scheduleStudyBlocks
             };
 
-            await axios.post(`${import.meta.env.VITE_SERVER_URL}/task/create`, taskData, {
+            const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/task/create`, taskData, {
                 withCredentials: true
             });
+
+            if (newTask.addToCalendar && response.data) {
+                const taskId = response.data.id;
+                const deadline = new Date(newTask.deadline);
+
+                await axios.post(`${import.meta.env.VITE_SERVER_URL}/user/calendar-events`, {
+                    taskId,
+                    start_time: deadline,
+                    end_time: deadline,
+                    type: 'TASK_BLOCK',
+                    is_group_event: false,
+                    location: 'Zuno App'
+                }, {
+                    withCredentials: true
+                });
+            }
+
             handleCloseAddTaskModal();
             fetchTasks();
         } catch (err) {
@@ -174,18 +194,40 @@ const TasksPage = () => {
         }
     };
 
-    const handleEditTask = (task) => {
+    const handleEditTask = async (task) => {
         let priorityLevel = "medium";
         if (task.priority >= priorityThresholds.high) priorityLevel = "high";
         else if (task.priority < priorityThresholds.medium) priorityLevel = "low";
 
-        setEditingTask({
-            ...task,
-            priorityLevel: priorityLevel,
-            originalPriorityLevel: priorityLevel,
-            deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : ""
-        });
-        setShowEditTaskModal(true);
+        try {
+            const calendarResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/user/calendar-events?taskId=${task.id}`, {
+                withCredentials: true
+            });
+
+            const hasCalendarEvent = calendarResponse.data.some(event => event.taskId === task.id);
+
+            setEditingTask({
+                ...task,
+                priorityLevel: priorityLevel,
+                originalPriorityLevel: priorityLevel,
+                deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : "",
+                addToCalendar: hasCalendarEvent,
+                scheduleStudyBlocks: task.requiresStudyBlock
+            });
+            setShowEditTaskModal(true);
+        } catch (err) {
+            console.error("Error checking calendar events:", err);
+
+            setEditingTask({
+                ...task,
+                priorityLevel: priorityLevel,
+                originalPriorityLevel: priorityLevel,
+                deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : "",
+                addToCalendar: false,
+                scheduleStudyBlocks: task.requiresStudyBlock
+            });
+            setShowEditTaskModal(true);
+        }
     };
 
     const handleCloseEditTaskModal = () => {
@@ -204,10 +246,10 @@ const TasksPage = () => {
     };
 
     const handleEditTaskChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
         setEditingTask(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'checkbox' ? checked : value
         }));
     };
 
@@ -222,12 +264,50 @@ const TasksPage = () => {
 
             const taskData = {
                 ...editingTask,
-                priority: priorityScore
+                priority: priorityScore,
+                requiresStudyBlock: editingTask.scheduleStudyBlocks
             };
 
             await axios.put(`${import.meta.env.VITE_SERVER_URL}/task/${editingTask.id}`, taskData, {
                 withCredentials: true
             });
+
+            const calendarResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/user/calendar-events?taskId=${editingTask.id}`, {
+                withCredentials: true
+            });
+
+            const existingEvent = calendarResponse.data.find(event => event.taskId === editingTask.id);
+            const deadline = new Date(editingTask.deadline);
+
+            if (editingTask.addToCalendar) {
+                if (existingEvent) {
+                    await axios.put(`${import.meta.env.VITE_SERVER_URL}/user/calendar-events/${existingEvent.id}`, {
+                        start_time: deadline,
+                        end_time: deadline,
+                        type: 'TASK_BLOCK',
+                        is_group_event: false,
+                        location: 'Zuno App'
+                    }, {
+                        withCredentials: true
+                    });
+                } else {
+                    await axios.post(`${import.meta.env.VITE_SERVER_URL}/user/calendar-events`, {
+                        taskId: editingTask.id,
+                        start_time: deadline,
+                        end_time: deadline,
+                        type: 'TASK_BLOCK',
+                        is_group_event: false,
+                        location: 'Zuno App'
+                    }, {
+                        withCredentials: true
+                    });
+                }
+            } else if (!editingTask.addToCalendar && existingEvent) {
+                await axios.delete(`${import.meta.env.VITE_SERVER_URL}/user/calendar-events/${existingEvent.id}`, {
+                    withCredentials: true
+                });
+            }
+
             handleCloseEditTaskModal();
             fetchTasks();
         } catch (err) {
@@ -832,6 +912,40 @@ const TasksPage = () => {
                                         rows="3"
                                     ></textarea>
                                 </div>
+                                <div className="form-group checkbox-group">
+                                    <input
+                                        type="checkbox"
+                                        id="addToCalendar"
+                                        name="addToCalendar"
+                                        checked={newTask.addToCalendar}
+                                        onChange={(e) => {
+                                            const isChecked = e.target.checked;
+                                            setNewTask(prev => ({
+                                                ...prev,
+                                                addToCalendar: isChecked,
+                                                scheduleStudyBlocks: isChecked ? prev.scheduleStudyBlocks : false
+                                            }));
+                                        }}
+                                    />
+                                    <label htmlFor="addToCalendar">Add to Calendar</label>
+                                </div>
+                                {newTask.addToCalendar && (
+                                    <div className="form-group checkbox-group indented">
+                                        <input
+                                            type="checkbox"
+                                            id="scheduleStudyBlocks"
+                                            name="scheduleStudyBlocks"
+                                            checked={newTask.scheduleStudyBlocks}
+                                            onChange={(e) => {
+                                                setNewTask(prev => ({
+                                                    ...prev,
+                                                    scheduleStudyBlocks: e.target.checked
+                                                }));
+                                            }}
+                                        />
+                                        <label htmlFor="scheduleStudyBlocks">Schedule Study Blocks for this Task</label>
+                                    </div>
+                                )}
                                 <div className="form-actions">
                                     <button type="button" className="cancel-button" onClick={handleCloseAddTaskModal}>Cancel</button>
                                     <button type="submit" className="submit-button">Add Task</button>
@@ -1043,6 +1157,40 @@ const TasksPage = () => {
                                         <option value="true">Completed</option>
                                     </select>
                                 </div>
+                                <div className="form-group checkbox-group">
+                                    <input
+                                        type="checkbox"
+                                        id="edit-addToCalendar"
+                                        name="addToCalendar"
+                                        checked={editingTask.addToCalendar}
+                                        onChange={(e) => {
+                                            const isChecked = e.target.checked;
+                                            setEditingTask(prev => ({
+                                                ...prev,
+                                                addToCalendar: isChecked,
+                                                scheduleStudyBlocks: isChecked ? prev.scheduleStudyBlocks : false
+                                            }));
+                                        }}
+                                    />
+                                    <label htmlFor="edit-addToCalendar">Add to Calendar</label>
+                                </div>
+                                {editingTask.addToCalendar && (
+                                    <div className="form-group checkbox-group indented">
+                                        <input
+                                            type="checkbox"
+                                            id="edit-scheduleStudyBlocks"
+                                            name="scheduleStudyBlocks"
+                                            checked={editingTask.scheduleStudyBlocks}
+                                            onChange={(e) => {
+                                                setEditingTask(prev => ({
+                                                    ...prev,
+                                                    scheduleStudyBlocks: e.target.checked
+                                                }));
+                                            }}
+                                        />
+                                        <label htmlFor="edit-scheduleStudyBlocks">Schedule Study Blocks for this Task</label>
+                                    </div>
+                                )}
                                 <div className="form-actions">
                                     <button type="button" className="cancel-button" onClick={handleCloseEditTaskModal}>Cancel</button>
                                     <button type="submit" className="submit-button">Save Changes</button>

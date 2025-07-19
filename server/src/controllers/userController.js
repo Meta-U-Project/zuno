@@ -194,7 +194,7 @@ const updateUserProfile = async (req, res) => {
 const getUserTasks = async (req, res) => {
     try {
         const userId = req.user.id;
-        
+
         const tasks = await prisma.task.findMany({
             where: { userId },
             orderBy: [
@@ -217,11 +217,125 @@ const getUserTasks = async (req, res) => {
     }
 };
 
+const getCalendarEvents = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { taskId } = req.query;
+
+        let whereClause = { userId };
+
+        if (taskId) {
+            whereClause.taskId = taskId;
+        }
+
+        const events = await prisma.calendarEvent.findMany({
+            where: whereClause,
+            orderBy: { start_time: 'asc' }
+        });
+
+        res.json(events);
+    } catch (error) {
+        console.error('Error fetching calendar events:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+const createCalendarEvent = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { taskId, start_time, end_time, type, is_group_event, location } = req.body;
+
+        const newEvent = await prisma.calendarEvent.create({
+            data: {
+                userId,
+                taskId,
+                start_time: new Date(start_time),
+                end_time: new Date(end_time),
+                type: type || 'TASK_BLOCK',
+                is_group_event: is_group_event || false,
+                location: location || '',
+                createdById: userId
+            }
+        });
+
+        res.status(201).json(newEvent);
+    } catch (error) {
+        console.error('Error creating calendar event:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+const updateCalendarEvent = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { eventId } = req.params;
+        const { start_time, end_time, type, is_group_event, location } = req.body;
+
+        const event = await prisma.calendarEvent.findFirst({
+            where: {
+                id: eventId,
+                userId
+            }
+        });
+
+        if (!event) {
+            return res.status(404).json({ message: 'Calendar event not found' });
+        }
+
+        const updatedEvent = await prisma.calendarEvent.update({
+            where: { id: eventId },
+            data: {
+                start_time: start_time ? new Date(start_time) : undefined,
+                end_time: end_time ? new Date(end_time) : undefined,
+                type,
+                is_group_event,
+                location
+            }
+        });
+
+        res.json(updatedEvent);
+    } catch (error) {
+        console.error('Error updating calendar event:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+const deleteCalendarEvent = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { eventId } = req.params;
+
+        const event = await prisma.calendarEvent.findFirst({
+            where: {
+                id: eventId,
+                userId
+            }
+        });
+
+        if (!event) {
+            return res.status(404).json({ message: 'Calendar event not found' });
+        }
+
+        await prisma.calendarEvent.delete({
+            where: { id: eventId }
+        });
+
+        res.json({ message: 'Calendar event deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting calendar event:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getIntegrations,
     getStudyPreferences,
     saveStudyPreferences,
     updateUserProfile,
-    getUserTasks
+    getUserTasks,
+    getCalendarEvents,
+    createCalendarEvent,
+    updateCalendarEvent,
+    deleteCalendarEvent
 };
