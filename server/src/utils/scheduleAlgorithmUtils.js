@@ -63,21 +63,56 @@ async function getPrioritizedTasks(userId) {
 }
 
 async function getExistingEvents(userId, startDate = new Date(), endDate = null) {
-    const whereClause = {
+    const calendarWhereClause = {
         userId,
         start_time: { gte: startDate }
     };
 
     if (endDate) {
-        whereClause.start_time.lte = endDate;
+        calendarWhereClause.start_time.lte = endDate;
     }
 
-    const existingEvents = await prisma.calendarEvent.findMany({
-        where: whereClause,
+    const calendarEvents = await prisma.calendarEvent.findMany({
+        where: calendarWhereClause,
         orderBy: { start_time: 'asc' }
     });
 
-    return existingEvents;
+    const lectureWhereClause = {
+        userId,
+        start_time: { gte: startDate }
+    };
+
+    if (endDate) {
+        lectureWhereClause.start_time.lte = endDate;
+    }
+
+    const lectures = await prisma.lecture.findMany({
+        where: lectureWhereClause,
+        orderBy: { start_time: 'asc' }
+    });
+
+    const lectureEvents = lectures.map(lecture => ({
+        id: `lecture-${lecture.id}`,
+        userId: lecture.userId,
+        start_time: lecture.start_time,
+        end_time: lecture.end_time,
+        type: 'CLASS_SESSION',
+        is_group_event: false,
+        location: lecture.location || 'Classroom',
+        title: lecture.title
+    }));
+
+    const allEvents = [...calendarEvents, ...lectureEvents];
+
+    allEvents.sort((a, b) => {
+        const aTime = a.start_time instanceof Date ? a.start_time : new Date(a.start_time);
+        const bTime = b.start_time instanceof Date ? b.start_time : new Date(b.start_time);
+        return aTime - bTime;
+    });
+
+    console.log('Sample lecture event:', lectureEvents[0]);
+
+    return allEvents;
 }
 
 function getFreeTimeSlots(existingEvents, startDate, endDate) {
@@ -87,6 +122,8 @@ function getFreeTimeSlots(existingEvents, startDate, endDate) {
         endDate = new Date(endDate);
     }
 
+    const now = new Date();
+
     for (let day = new Date(startDate); day.getTime() <= endDate.getTime(); day.setDate(day.getDate() + 1)) {
         const startOfDay = new Date(day);
         startOfDay.setHours(9, 0, 0, 0);
@@ -95,6 +132,11 @@ function getFreeTimeSlots(existingEvents, startDate, endDate) {
         endOfDay.setHours(20, 0, 0, 0);
 
         let cursor = new Date(startOfDay);
+
+        const isToday = day.toDateString() === now.toDateString();
+        if (isToday && now > cursor) {
+            cursor = new Date(Math.min(now.getTime(), endOfDay.getTime())); // clip to endOfDay
+        }
 
         const eventsToday = existingEvents.filter(ev => {
             const eventStart = ev.start_time instanceof Date ? ev.start_time : new Date(ev.start_time);
@@ -114,6 +156,8 @@ function getFreeTimeSlots(existingEvents, startDate, endDate) {
             }
             const eventEndTime = event.end_time instanceof Date ? event.end_time : new Date(event.end_time);
             cursor = new Date(Math.max(cursor.getTime(), eventEndTime.getTime()));
+            console.log('Processing event:', event.title, event.start_time, event.end_time);
+            console.log('Start of day:', startOfDay, 'End of day:', endOfDay);
         }
 
         if (cursor < endOfDay) {
