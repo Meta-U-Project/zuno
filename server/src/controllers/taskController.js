@@ -15,7 +15,8 @@ const createTask = async (req, res) => {
             type,
             description,
             priority,
-            deadline
+            deadline,
+            source = "user"
         } = req.body;
 
         const newTask = await prisma.task.create({
@@ -27,7 +28,8 @@ const createTask = async (req, res) => {
                 description,
                 priority,
                 deadline: new Date(deadline),
-                completed: false
+                completed: false,
+                source
             }
         });
 

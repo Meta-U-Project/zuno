@@ -71,12 +71,17 @@ async function syncCanvasData(user) {
                 const priorityScore = calculatePriorityScore(assignment)
                 const studyTime = estimateStudyTime(assignment)
 
+                const canvasNote = "\n\n<p><strong>Note:</strong> This task was imported from Canvas. Please view Canvas for more details and submission options.</p>";
+                const assignmentDescription = assignment.description || '';
+                const descriptionWithNote = assignmentDescription + canvasNote;
+
                 await prisma.task.upsert({
                     where: { id: assignment.id.toString() },
                     update: {
                         title: assignment.name,
-                        description: assignment.description || '',
+                        description: descriptionWithNote,
                         deadline: new Date(assignment.due_at),
+                        source: "canvas",
                     },
                     create: {
                         id: assignment.id.toString(),
@@ -84,11 +89,12 @@ async function syncCanvasData(user) {
                         courseId: course.id.toString(),
                         title: assignment.name,
                         type: type,
-                        description: assignment.description || '',
+                        description: descriptionWithNote,
                         priority: priorityScore,
                         studyTime,
                         requiresStudyBlock: true,
                         deadline: new Date(assignment.due_at),
+                        source: "canvas",
                     }
 
                 });
@@ -154,15 +160,24 @@ async function syncCanvasData(user) {
 
                         let task;
                         if (existingTask) {
+                            const canvasNote = "\n\n<p><strong>Note:</strong> This discussion was imported from Canvas. Please view Canvas for more details and to participate in the discussion.</p>";
+                            const discussionMessage = discussion.message || '';
+                            const messageWithNote = discussionMessage + canvasNote;
+
                             task = await prisma.task.update({
                                 where: { id: existingTask.id },
                                 data: {
                                     title: discussion.title,
-                                    description: discussion.message || '',
+                                    description: messageWithNote,
                                     deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
+                                    source: "canvas",
                                 }
                             });
                         } else {
+                            const canvasNote = "\n\n<p><strong>Note:</strong> This discussion was imported from Canvas. Please view Canvas for more details and to participate in the discussion.</p>";
+                            const discussionMessage = discussion.message || '';
+                            const messageWithNote = discussionMessage + canvasNote;
+
                             task = await prisma.task.create({
                                 data: {
                                     id: discussion.id.toString(),
@@ -170,11 +185,12 @@ async function syncCanvasData(user) {
                                     courseId: course.id.toString(),
                                     title: discussion.title,
                                     type: 'DISCUSSION',
-                                    description: discussion.message || '',
+                                    description: messageWithNote,
                                     priority: priorityScore,
                                     studyTime,
                                     requiresStudyBlock: true,
                                     deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
+                                    source: "canvas",
                                 }
                             });
                         }

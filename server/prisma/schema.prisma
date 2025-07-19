@@ -112,6 +112,7 @@ model Task {
   studyTime       Float?
   completed       Boolean  @default(false)
   requiresStudyBlock Boolean @default(false)
+  source          String   @default("user")
   calendarEvents  CalendarEvent[]
 
   createdAt       DateTime @default(now())

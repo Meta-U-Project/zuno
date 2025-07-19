@@ -305,11 +305,92 @@
     cursor: pointer;
 }
 
+.task-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .task-title {
     font-weight: 500;
     font-size: 16px;
     margin: 0;
     color: #333;
+}
+
+.source-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    padding: 2px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.canvas-badge {
+    color: #ff8c00;
+}
+
+.source-badge svg {
+    stroke: currentColor;
+}
+
+.source-canvas {
+    border-left: 3px solid #ff8c00;
+}
+
+.source-user {
+    border-left: 3px solid #7735e2;
+}
+
+.source-badge-detail {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.source-canvas-detail {
+    background-color: #fff3e0;
+    color: #ff8c00;
+}
+
+.source-user-detail {
+    background-color: #f3e5ff;
+    color: #7735e2;
+}
+
+.tasks-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #555;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-color.canvas {
+    background-color: #ff8c00;
+}
+
+.legend-color.user {
+    background-color: #7735e2;
 }
 
 .task-card.completed .task-title {
