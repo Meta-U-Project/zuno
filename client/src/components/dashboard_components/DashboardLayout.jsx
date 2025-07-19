@@ -37,7 +37,6 @@ const DashboardLayout = () => {
                     setAssignments(upcomingAssignments);
                 }
 
-                // Get the date range for this week
                 const today = new Date();
                 const startOfWeek = new Date(today);
                 const endOfWeek = new Date(today);

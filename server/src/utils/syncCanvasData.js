@@ -20,12 +20,24 @@ async function syncCanvasData(user) {
         const courseData = coursesRes.data;
 
         for (const course of courseData) {
+            let instructorName = 'TBD';
+            try {
+                const teachersRes = await canvas.get(`/courses/${course.id}/users?enrollment_type=teacher`);
+                const teachers = teachersRes.data;
+
+                if (teachers && teachers.length > 0) {
+                    instructorName = teachers[0].name || teachers[0].display_name || 'TBD';
+                }
+            } catch (err) {
+                console.warn(`Could not fetch teachers for course ${course.id}: ${err.message}`);
+            }
+
             await prisma.course.upsert({
                 where: { id: course.id.toString() },
                 update: {
                     course_name: course.name || 'Untitled',
                     course_code: course.course_code || 'N/A',
-                    instructor_name: 'TBD',
+                    instructor_name: instructorName,
                     term: course.term || 'N/A',
                 },
                 create: {
@@ -33,7 +45,7 @@ async function syncCanvasData(user) {
                     userId,
                     course_name: course.name || 'Untitled',
                     course_code: course.course_code || 'N/A',
-                    instructor_name: 'TBD',
+                    instructor_name: instructorName,
                     term: course.term || 'N/A',
                 }
             });
