@@ -15,12 +15,74 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.search-container {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    background-color: white;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: #7735e2;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(119, 53, 226, 0.2);
 }
 
 .filter-sort-container {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.view-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.view-toggle-button {
+    background: none;
+    border: none;
+    padding: 8px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.view-toggle-button svg {
+    stroke: #666;
+    transition: all 0.2s ease;
+}
+
+.view-toggle-button.active {
+    background: #f0f7ff;
+}
+
+.view-toggle-button.active svg {
+    stroke: #0a63ac;
+}
+
+.view-toggle-button:hover:not(.active) {
+    background-color: #f5f5f5;
 }
 
 .sort-container {
@@ -131,10 +193,77 @@
     opacity: 0.9;
 }
 
-.tasks-list {
+.tasks-list.grid-view {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
+}
+.tasks-list.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.list-view .task-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+        "checkbox title actions"
+        "details details details";
+    align-items: center;
+    padding: 12px 16px;
+}
+
+.list-view .task-header {
+    display: contents;
+}
+
+.list-view .task-title-container {
+    grid-area: checkbox / checkbox / title / title;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.list-view .task-checkbox {
+    grid-area: checkbox;
+}
+
+.list-view .task-title {
+    grid-area: title;
+    margin: 0;
+}
+
+.list-view .task-actions {
+    grid-area: actions;
+    display: flex;
+    gap: 8px;
+    justify-self: end;
+}
+
+.list-view .task-details {
+    grid-area: details;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 10px;
+    margin-left: 36px;
+}
+
+.list-view .task-detail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.list-view .detail-label {
+    font-size: 12px;
+    color: #666;
+}
+
+.list-view .detail-value {
+    font-size: 14px;
+    color: #333;
 }
 
 .task-card {

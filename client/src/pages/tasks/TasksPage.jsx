@@ -17,7 +17,7 @@ const TasksPage = () => {
         title: "",
         type: "ASSIGNMENT",
         description: "",
-        priority: 1,
+        priorityLevel: "medium",
         deadline: new Date().toISOString().split('T')[0]
     });
     const [editingTask, setEditingTask] = useState(null);
@@ -25,7 +25,6 @@ const TasksPage = () => {
     const [selectedTask, setSelectedTask] = useState(null);
     const [showTaskDetailModal, setShowTaskDetailModal] = useState(false);
 
-    // Sorting and filtering state
 
     const [sortOption, setSortOption] = useState("deadline-asc");
     const [filterOptions, setFilterOptions] = useState({
@@ -35,6 +34,8 @@ const TasksPage = () => {
         priority: ""
     });
     const [showFilters, setShowFilters] = useState(false);
+    const [viewMode, setViewMode] = useState("grid");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const fetchTasks = async () => {
         try {
@@ -122,12 +123,44 @@ const TasksPage = () => {
         }));
     };
 
+    const calculatePriorityScore = (priorityLevel) => {
+        const defaultScores = {
+            high: 9,
+            medium: 5,
+            low: 2
+        };
+
+        if (tasks.length === 0) {
+            return defaultScores[priorityLevel];
+        }
+
+        const priorityScores = tasks.map(task => parseFloat(task.priority)).filter(score => !isNaN(score));
+
+        if (priorityScores.length === 0) {
+            return defaultScores[priorityLevel];
+        }
+
+        const minScore = Math.min(...priorityScores);
+        const maxScore = Math.max(...priorityScores);
+        const avgScore = priorityScores.reduce((sum, score) => sum + score, 0) / priorityScores.length;
+
+        const dynamicScores = {
+            high: Math.min(maxScore + 1, 10),
+            medium: avgScore,
+            low: Math.max(minScore - 1, 1)
+        };
+
+        return dynamicScores[priorityLevel];
+    };
+
     const handleSubmitNewTask = async (e) => {
         e.preventDefault();
         try {
+            const priorityScore = calculatePriorityScore(newTask.priorityLevel);
+
             const taskData = {
                 ...newTask,
-                priority: parseFloat(newTask.priority)
+                priority: priorityScore
             };
 
             await axios.post(`${import.meta.env.VITE_SERVER_URL}/task/create`, taskData, {
@@ -142,8 +175,14 @@ const TasksPage = () => {
     };
 
     const handleEditTask = (task) => {
+        let priorityLevel = "medium";
+        if (task.priority >= priorityThresholds.high) priorityLevel = "high";
+        else if (task.priority < priorityThresholds.medium) priorityLevel = "low";
+
         setEditingTask({
             ...task,
+            priorityLevel: priorityLevel,
+            originalPriorityLevel: priorityLevel,
             deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : ""
         });
         setShowEditTaskModal(true);
@@ -175,9 +214,15 @@ const TasksPage = () => {
     const handleSubmitEditTask = async (e) => {
         e.preventDefault();
         try {
+            let priorityScore = parseFloat(editingTask.priority);
+
+            if (editingTask.priorityLevel && editingTask.originalPriorityLevel !== editingTask.priorityLevel) {
+                priorityScore = calculatePriorityScore(editingTask.priorityLevel);
+            }
+
             const taskData = {
                 ...editingTask,
-                priority: parseFloat(editingTask.priority)
+                priority: priorityScore
             };
 
             await axios.put(`${import.meta.env.VITE_SERVER_URL}/task/${editingTask.id}`, taskData, {
@@ -261,15 +306,40 @@ const TasksPage = () => {
         return course ? course.course_name : "Unknown Course";
     };
 
+    const calculatePriorityThresholds = () => {
+        if (tasks.length === 0) {
+            return { high: 8, medium: 4 };
+        }
+
+        const priorityScores = tasks.map(task => parseFloat(task.priority)).filter(score => !isNaN(score));
+
+        if (priorityScores.length === 0) {
+            return { high: 8, medium: 4 };
+        }
+
+        priorityScores.sort((a, b) => a - b);
+
+        const highThreshold = priorityScores[Math.floor(priorityScores.length * 0.67)] || 8;
+        const mediumThreshold = priorityScores[Math.floor(priorityScores.length * 0.33)] || 4;
+
+        return { high: highThreshold, medium: mediumThreshold };
+    };
+
+    const [priorityThresholds, setPriorityThresholds] = useState({ high: 8, medium: 4 });
+
+    useEffect(() => {
+        setPriorityThresholds(calculatePriorityThresholds());
+    }, [tasks]);
+
     const getPriorityLabel = (priority) => {
-        if (priority >= 8) return "High";
-        if (priority >= 4) return "Medium";
+        if (priority >= priorityThresholds.high) return "High";
+        if (priority >= priorityThresholds.medium) return "Medium";
         return "Low";
     };
 
     const getPriorityClass = (priority) => {
-        if (priority >= 8) return "priority-high";
-        if (priority >= 4) return "priority-medium";
+        if (priority >= priorityThresholds.high) return "priority-high";
+        if (priority >= priorityThresholds.medium) return "priority-medium";
         return "priority-low";
     };
     const stripHtmlTags = (html) => {
@@ -281,6 +351,14 @@ const TasksPage = () => {
 
     const getSortedAndFilteredTasks = () => {
         let filteredTasks = [...tasks];
+
+        if (searchQuery.trim() !== "") {
+            const query = searchQuery.toLowerCase().trim();
+            filteredTasks = filteredTasks.filter(task =>
+                task.title.toLowerCase().includes(query) ||
+                (task.description && task.description.toLowerCase().includes(query))
+            );
+        }
 
         if (filterOptions.course) {
             filteredTasks = filteredTasks.filter(task => task.courseId === filterOptions.course);
@@ -299,9 +377,9 @@ const TasksPage = () => {
         if (filterOptions.priority) {
             filteredTasks = filteredTasks.filter(task => {
                 const priorityValue = parseFloat(task.priority);
-                if (filterOptions.priority === "high") return priorityValue >= 8;
-                if (filterOptions.priority === "medium") return priorityValue >= 4 && priorityValue < 8;
-                if (filterOptions.priority === "low") return priorityValue < 4;
+                if (filterOptions.priority === "high") return priorityValue >= priorityThresholds.high;
+                if (filterOptions.priority === "medium") return priorityValue >= priorityThresholds.medium && priorityValue < priorityThresholds.high;
+                if (filterOptions.priority === "low") return priorityValue < priorityThresholds.medium;
                 return true;
             });
         }
@@ -420,7 +498,41 @@ const TasksPage = () => {
                 <div className="tasks-container">
                     <div className="tasks-header">
                         <div className="tasks-controls">
+                            <div className="search-container">
+                                <input
+                                    type="text"
+                                    placeholder="Search tasks..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="search-input"
+                                />
+                            </div>
                             <div className="filter-sort-container">
+                                <div className="view-toggle">
+                                    <button
+                                        className={`view-toggle-button ${viewMode === 'grid' ? 'active' : ''}`}
+                                        onClick={() => setViewMode('grid')}
+                                        title="Grid View"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect x="3" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <rect x="14" y="3" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <rect x="14" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <rect x="3" y="14" width="7" height="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        className={`view-toggle-button ${viewMode === 'list' ? 'active' : ''}`}
+                                        onClick={() => setViewMode('list')}
+                                        title="List View"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </div>
                                 <div className="sort-container">
                                     <select
                                         className="sort-select"
@@ -522,7 +634,7 @@ const TasksPage = () => {
                         )}
                     </div>
 
-                    <div className="tasks-list">
+                    <div className={`tasks-list ${viewMode === 'list' ? 'list-view' : 'grid-view'}`}>
                         {tasks.length === 0 ? (
                             <div className="no-tasks">
                                 <p>You don't have any tasks yet. Click "Add Task" to create one.</p>
@@ -670,16 +782,17 @@ const TasksPage = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="priority">Priority (1-10)</label>
-                                    <input
-                                        type="number"
-                                        id="priority"
-                                        name="priority"
-                                        min="1"
-                                        max="10"
-                                        value={newTask.priority}
+                                    <label htmlFor="priorityLevel">Priority</label>
+                                    <select
+                                        id="priorityLevel"
+                                        name="priorityLevel"
+                                        value={newTask.priorityLevel}
                                         onChange={handleNewTaskChange}
-                                    />
+                                    >
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="description">Description</label>
@@ -855,16 +968,17 @@ const TasksPage = () => {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="edit-priority">Priority (1-10)</label>
-                                    <input
-                                        type="number"
-                                        id="edit-priority"
-                                        name="priority"
-                                        min="1"
-                                        max="10"
-                                        value={editingTask.priority}
+                                    <label htmlFor="priorityLevel">Priority</label>
+                                    <select
+                                        id="priorityLevel"
+                                        name="priorityLevel"
+                                        value={editingTask.priorityLevel}
                                         onChange={handleEditTaskChange}
-                                    />
+                                    >
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="edit-description">Description</label>
