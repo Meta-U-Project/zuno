@@ -127,7 +127,6 @@ const scheduleStudySessions = async (req, res) => {
         let eligibleTasks = allEligibleTasks;
         if (saveToCalendar && taskIds.length > 0) {
             eligibleTasks = allEligibleTasks.filter(task => taskIds.includes(task.id));
-            console.log(`Filtered to ${eligibleTasks.length} tasks from ${taskIds.length} provided task IDs`);
         }
 
         const startDate = new Date();
@@ -177,7 +176,6 @@ const scheduleStudySessions = async (req, res) => {
                     const blockId = `${block.taskId}-${new Date(block.start_time).getTime()}`;
                     return blockIds.includes(blockId);
                 });
-                console.log(`Filtered to ${blocksToSave.length} blocks from ${blockIds.length} provided block IDs`);
             } else if (taskIds.length > 0) {
                 blocksToSave = scheduledBlocks.filter(block => taskIds.includes(block.taskId));
             } else {
@@ -186,7 +184,6 @@ const scheduleStudySessions = async (req, res) => {
 
             if (blocksToSave.length > 0) {
                 savedEvents = await saveStudyBlocks(blocksToSave);
-                console.log(`Saved ${savedEvents.length} study blocks to calendar`);
             }
         }
 

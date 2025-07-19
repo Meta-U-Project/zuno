@@ -110,16 +110,11 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
     try {
-        console.log('Incoming reset request...');
         const { id, token } = req.params;
         const { newPassword } = req.body;
-        console.log('Params:', id, token);
-        console.log('New password:', newPassword);
 
         const user = await prisma.user.findUnique({ where: { id } });
         if (!user) return res.status(400).json({ message: 'User not found' });
-
-        console.log('User found:', user.email);
 
         const isValid = verifyResetToken(user, token);
         if (!isValid) return res.status(401).json({ message: 'Invalid or expired token' });
@@ -131,8 +126,6 @@ const resetPassword = async (req, res) => {
             data: { password: hashed },
         });
 
-        console.log('Password updated. Sending confirmation email...');
-
         const mailOptions = passwordResetConfirmationTemplate(user);
 
         transporter.sendMail(mailOptions, (error, info) => {
@@ -140,8 +133,6 @@ const resetPassword = async (req, res) => {
             console.error('Email error:', error);
             return res.status(500).json({ message: 'Error sending confirmation email' });
             }
-
-            console.log('Confirmation email sent:', info.response);
             return res.json({ message: 'Password reset successfully!', type: 'success' });
         });
 

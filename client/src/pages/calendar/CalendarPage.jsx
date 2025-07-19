@@ -66,8 +66,6 @@ const CalendarPage = () => {
                     };
                 });
 
-                console.log(eventsResponse.data)
-
                 const transformedClassSessions = classSessionsResponse.data.map(session => {
                     const colors = getEventColor('class_session');
 
@@ -417,16 +415,45 @@ const CalendarPage = () => {
                                         `;
                                     }
 
+                                    if (event.extendedProps.location) {
+                                        tooltipContent += `
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Location:</span>
+                                                <span class="tooltip-value">${event.extendedProps.location}</span>
+                                            </div>
+                                        `;
+                                    }
+
                                     tooltipContent += `
                                             <div class="tooltip-detail">
                                                 <span class="tooltip-label">Date:</span>
-                                                <span class="tooltip-value">${new Date(event.start).toLocaleString('en-US', {
+                                                <span class="tooltip-value">${new Date(event.start).toLocaleDateString('en-US', {
                                                     weekday: 'short',
                                                     month: 'short',
-                                                    day: 'numeric',
-                                                    hour: 'numeric',
-                                                    minute: '2-digit'
+                                                    day: 'numeric'
                                                 })}</span>
+                                            </div>
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Time:</span>
+                                                <span class="tooltip-value">
+                                                    ${event.end && new Date(event.start).getTime() !== new Date(event.end).getTime() ? `
+                                                    ${new Date(event.start).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })} - ${new Date(event.end).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}
+                                                    ` : `
+                                                    <strong>Deadline:</strong> ${new Date(event.start).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}
+                                                    `}
+                                                </span>
                                             </div>
                                     `;
 
@@ -450,6 +477,16 @@ const CalendarPage = () => {
                                     info.el.addEventListener('mouseenter', () => {
                                         const rect = info.el.getBoundingClientRect();
                                         tooltip.style.left = `${rect.left + window.scrollX}px`;
+                                        const tooltipWidth = tooltip.offsetWidth;
+                                        const windowWidth = window.innerWidth;
+
+
+                                        let leftPos = rect.left + window.scrollX;
+                                        if (leftPos + tooltipWidth > windowWidth - 20) {
+                                            leftPos = windowWidth - tooltipWidth - 20;
+                                        }
+
+                                        tooltip.style.left = `${leftPos}px`;
                                         tooltip.style.top = `${rect.bottom + window.scrollY + 10}px`;
                                         tooltip.style.display = 'block';
                                     });
