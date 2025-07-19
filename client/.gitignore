@@ -26,6 +26,3 @@ rules.txt
 *.sw?
 
 .env
-
-
-src/pages/tasks/TasksPage.css
