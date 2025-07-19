@@ -186,19 +186,26 @@
 }
 
 .days-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.day-preference {
+    flex: 1 1 250px;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .day-preference {
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 10px;
-    padding: 0.9rem;
+    padding: 1.25rem;
     transition: all 0.3s;
     position: relative;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    margin-bottom: 0.5rem;
 }
 
 .day-preference.enabled {
@@ -290,41 +297,48 @@
 }
 
 .day-time-range {
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+    padding: 0.75rem;
+    background-color: rgba(119, 53, 226, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(119, 53, 226, 0.1);
 }
 
 .day-time-range:last-child {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .day-times {
     display: flex;
-    gap: 0.5rem; /* Reduced gap between inputs */
+    gap: 0.75rem;
     animation: fadeIn 0.3s ease-out;
-    flex-direction: row;
-    width: 100%; /* Ensure the container takes full width of the card */
-    box-sizing: border-box; /* Include padding in width calculation */
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
     position: relative;
+    margin-bottom: 0.75rem;
 }
 
-/* Add specific styling for time inputs within day cards */
 .day-preference .time-input-group {
     flex: 1;
-    min-width: 0; /* Allow flex items to shrink below content size */
+    min-width: 0;
+    margin-bottom: 0.5rem;
 }
 
 .day-preference .time-input-group label {
-    font-size: 0.75rem; /* Smaller font size */
-    margin-bottom: 0.4rem; /* Reduced margin */
-    white-space: nowrap; /* Prevent label from wrapping */
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    color: #555;
 }
 
 .day-preference .time-input-group input {
     width: 100%;
     box-sizing: border-box;
-    padding: 0.4rem 0.4rem; /* Further reduced padding */
-    font-size: 0.7rem; /* Even smaller font size */
-    min-width: 0; /* Allow input to shrink */
+    padding: 0.6rem 0.6rem;
+    font-size: 0.85rem;
+    min-width: 0;
 }
 
 .modal-footer {
@@ -424,15 +438,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
+    padding: 0.6rem;
+    margin-top: 0.75rem;
     background: none;
     border: 1px dashed rgba(119, 53, 226, 0.3);
     border-radius: 6px;
     color: #7735e2;
     font-family: "Poppins", sans-serif;
     font-weight: 500;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
@@ -441,6 +455,11 @@
 .add-time-button:hover {
     background-color: rgba(119, 53, 226, 0.05);
     border-color: rgba(119, 53, 226, 0.5);
+    transform: translateY(-1px);
+}
+
+.add-time-button:active {
+    transform: translateY(0);
 }
 
 /* Remove button styling */
@@ -472,8 +491,8 @@
 }
 
 .remove-time-button {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.1);
@@ -486,7 +505,9 @@
     transition: all 0.2s;
     padding: 0;
     line-height: 1;
-    margin-left: auto;
+    position: absolute;
+    top: 8px;
+    right: 8px;
     flex-shrink: 0;
 }
 

@@ -55,8 +55,6 @@ const SignUpPage = () => {
                 throw new Error(data.message || 'Failed to create account');
             }
 
-            console.log('Sign up successful:', data);
-
             setFormData({
                 firstName: '',
                 lastName: '',

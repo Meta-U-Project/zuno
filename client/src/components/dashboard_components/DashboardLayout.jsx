@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./DashboardLayout.css";
 import AnalyticsCard from "./AnalyticsCard";
 import NotesCard from "./NotesCard";
@@ -9,6 +9,8 @@ const DashboardLayout = () => {
     const [calendarEvents, setCalendarEvents] = useState([]);
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [hoveredEvent, setHoveredEvent] = useState(null);
+    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -35,26 +37,58 @@ const DashboardLayout = () => {
                     setAssignments(upcomingAssignments);
                 }
 
+                const today = new Date();
+                const startOfWeek = new Date(today);
+                const endOfWeek = new Date(today);
+
+                startOfWeek.setDate(today.getDate() - today.getDay());
+                startOfWeek.setHours(0, 0, 0, 0);
+                endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+                endOfWeek.setHours(23, 59, 59, 999);
+
+                let allEvents = [];
+
                 const calendarResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
                     credentials: 'include',
                 });
+
                 if (calendarResponse.ok) {
                     const calendarData = await calendarResponse.json();
-                    const today = new Date();
-                    const startOfWeek = new Date(today);
-                    const endOfWeek = new Date(today);
-
-                    startOfWeek.setDate(today.getDate() - today.getDay());
-                    startOfWeek.setHours(0, 0, 0, 0);
-                    endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
-                    endOfWeek.setHours(23, 59, 59, 999);
-
                     const weekEvents = calendarData.filter(event => {
                         const eventDate = new Date(event.date);
                         return eventDate >= startOfWeek && eventDate <= endOfWeek;
-                    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-                    setCalendarEvents(weekEvents);
+                    }).map(event => ({
+                        ...event,
+                        type: event.type || 'assignment'
+                    }));
+
+                    allEvents = [...weekEvents];
                 }
+
+                const classSessionsResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/classsessions`, {
+                    credentials: 'include',
+                });
+
+                if (classSessionsResponse.ok) {
+                    const classSessionsData = await classSessionsResponse.json();
+                    const weekSessions = classSessionsData.filter(session => {
+                        const sessionDate = new Date(session.start_time);
+                        return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+                    }).map(session => ({
+                        id: session.id,
+                        title: session.title,
+                        date: session.start_time,
+                        type: 'class_session',
+                        courseId: session.courseId,
+                        courseName: session.courseName,
+                        bg: '#4299e1'
+                    }));
+
+                    allEvents = [...allEvents, ...weekSessions];
+                }
+
+                allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+                setCalendarEvents(allEvents);
 
                 const announcementsResponse = await fetch(`${import.meta.env.VITE_SERVER_URL}/canvas/announcements`, {
                     credentials: 'include',
@@ -151,15 +185,35 @@ const DashboardLayout = () => {
                                         <div key={i} className={`calendar-day ${isToday ? 'today' : ''}`}>
                                             <div className="day-number">{currentDay.getDate()}</div>
                                             <div className="day-events">
-                                                {dayEvents.slice(0, 3).map((event, eventIndex) => (
-                                                    <div key={eventIndex} className="day-event">
-                                                        <div className="event-dot"></div>
-                                                        <div className="event-tooltip">
-                                                            <div className="tooltip-title">{event.title}</div>
-                                                            <div className="tooltip-course">{event.courseName}</div>
+                                                {dayEvents.slice(0, 3).map((event, eventIndex) => {
+                                                    const eventColor = event.bg || (
+                                                        event.type === 'class_session' ? '#4299e1' :
+                                                        event.type === 'task_block' ? '#48bb78' :
+                                                        '#7735e2'
+                                                    );
+
+                                                    return (
+                                                        <div
+                                                            key={eventIndex}
+                                                            className="day-event"
+                                                            data-type={event.type || 'assignment'}
+                                                            onMouseEnter={(e) => {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setTooltipPosition({ x: rect.left, y: rect.top - 80 });
+                                                                setHoveredEvent(event);
+                                                            }}
+
+                                                            onMouseLeave={() => {
+                                                                setHoveredEvent(null);
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="event-dot"
+                                                                style={{ background: eventColor }}
+                                                            ></div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                                 {dayEvents.length > 3 && (
                                                     <div className="more-events">+{dayEvents.length - 3} more</div>
                                                 )}
@@ -179,9 +233,9 @@ const DashboardLayout = () => {
                     <h3>Your Courses</h3>
                     <a href="#" className="view-all-link">view all</a>
                 </div>
-                <div className="card-content">
+                <div className={`card-content ${courses.length > 2 ? 'courses-grid' : ''}`}>
                     {courses.length > 0 ? (
-                        courses.map((course, index) => (
+                        courses.slice(0, 4).map((course, index) => (
                             <div key={index} className="course-item">
                                 <div className="course-info">
                                     <h4>{course.course_name}</h4>
@@ -284,6 +338,23 @@ const DashboardLayout = () => {
             <div className="chat-widget">
                 <button className="chat-button">Chat with Zuno</button>
             </div>
+            {hoveredEvent && (
+                <div
+                    className="event-tooltip"
+                    style={{
+                        left: `${tooltipPosition.x}px`,
+                        top: `${tooltipPosition.y}px`,
+                        opacity: 1,
+                        visibility: 'visible',
+                    }}
+                >
+                    <div className="tooltip-title">{hoveredEvent.title}</div>
+                    <div className="tooltip-course">{hoveredEvent.courseName}</div>
+                    {hoveredEvent.type === 'class_session' && (
+                        <div className="tooltip-type">Class Session</div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

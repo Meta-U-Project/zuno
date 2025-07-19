@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 const syncCanvasScheduler = () => {
     cron.schedule('0 * * * *', async () => {
-        console.log('Running scheduled Canvas sync...');
 
         const users = await prisma.user.findMany({
             where: {
@@ -22,7 +21,6 @@ const syncCanvasScheduler = () => {
 
             try {
                 await syncCanvasData(user);
-                console.log(`Canvas sync complete for user: ${user.email}`);
             } catch (err) {
                 console.error(`Canvas sync error for user ${user.email}:`, err.message);
             }

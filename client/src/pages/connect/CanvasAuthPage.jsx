@@ -28,8 +28,6 @@ const CanvasAuthPage = () => {
                 throw new Error(data.error || 'Failed to save Canvas credentials');
             }
 
-            console.log('Canvas credentials saved:', data);
-
             if (data.redirectToDashboard) {
                 navigate('/dashboard?canvas=connected');
             } else {

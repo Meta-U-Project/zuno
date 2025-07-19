@@ -120,10 +120,43 @@ const fetchAnnouncements = async (req, res) => {
     }
 };
 
+const fetchClassSessions = async (req, res) => {
+    try {
+        // Fetch lectures from the new Lecture model
+        const lectures = await prisma.lecture.findMany({
+            where: {
+                userId: req.user.id
+            },
+            include: {
+                course: true
+            }
+        });
+
+        const transformedSessions = lectures.map(lecture => {
+            return {
+                id: lecture.id,
+                title: lecture.title,
+                start_time: lecture.start_time,
+                end_time: lecture.end_time,
+                location: lecture.location || 'Classroom',
+                courseId: lecture.courseId,
+                courseName: lecture.course.course_name,
+                type: 'class_session'
+            };
+        });
+
+        res.status(200).json(transformedSessions);
+    } catch (err) {
+        console.error('Error fetching class sessions:', err.message);
+        res.status(500).json({ error: 'Something went wrong fetching class sessions' });
+    }
+};
+
 module.exports = {
     saveCanvasCredentials,
     fetchCourses,
     fetchCanvasTasks,
     fetchCalendarEventsFromTasks,
-    fetchAnnouncements
+    fetchAnnouncements,
+    fetchClassSessions
 };

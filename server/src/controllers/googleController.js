@@ -52,7 +52,6 @@ const callback = async (req, res) => {
             res.redirect(`${process.env.CLIENT_URL}/connect?google=connected`);
         }
     } catch (error) {
-        console.log("Google callback error:", error);
         res.status(500).send("Google OAuth Failed.");
     }
 };

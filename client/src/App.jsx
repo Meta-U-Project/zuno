@@ -10,6 +10,7 @@ import ConnectPage from './pages/connect/Connect';
 import CanvasAuthPage from './pages/connect/CanvasAuthPage';
 import CalendarPage from './pages/calendar/CalendarPage';
 import ProfilePage from './pages/profile/ProfilePage';
+import TasksPage from './pages/tasks/TasksPage';
 
 const App = () => {
   return (
@@ -25,6 +26,7 @@ const App = () => {
         <Route path="/forgot-password" element={<ResetPassword />} />
         <Route path="/reset-password/:id/:token" element={<NewPasswordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/tasks" element={<TasksPage />} />
       </Routes>
     </div>
   );

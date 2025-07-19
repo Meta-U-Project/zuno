@@ -15,6 +15,7 @@ const Dashboard = () => {
     const [error, setError] = useState('');
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+    const [preferencesSaved, setPreferencesSaved] = useState(false);
 
     const handleLogout = async () => {
         try {
@@ -47,9 +48,12 @@ const Dashboard = () => {
         navigate('/profile');
     };
 
-    const handleSavePreferences = (preferences) => {
-        console.log('Saving preferences:', preferences);
-        localStorage.setItem('hasSetStudyPreferences', 'true');
+    const handleSavePreferences = (_preferences) => {
+        setPreferencesSaved(true);
+
+        setTimeout(() => {
+            setPreferencesSaved(false);
+        }, 3000);
     };
 
     useEffect(() => {
@@ -71,7 +75,7 @@ const Dashboard = () => {
                 const userData = await response.json();
                 setUserFirstName(userData.firstName || "User");
 
-                const hasPreferences = localStorage.getItem('hasSetStudyPreferences') === 'true';
+                const hasPreferences = userData.hasPreferences;
 
                 const isFromSignup = location.state?.fromSignup;
                 const openPreferences = location.state?.openPreferences;
@@ -180,6 +184,18 @@ const Dashboard = () => {
                 onClose={() => setShowPreferencesModal(false)}
                 onSave={handleSavePreferences}
             />
+
+            {preferencesSaved && (
+                <div className="preferences-saved-notification">
+                    <div className="notification-content">
+                        <svg className="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                            <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+                        <span>Preferences saved successfully!</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

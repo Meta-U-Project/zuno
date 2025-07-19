@@ -53,8 +53,6 @@ const LoginPage = () => {
                 throw new Error(data.message || 'Login failed');
             }
 
-            console.log('Login successful:', data);
-
             setIsLoading(false);
             setIsRedirecting(true);
 
