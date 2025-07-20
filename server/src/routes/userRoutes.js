@@ -10,7 +10,8 @@ const {
     getCalendarEvents,
     createCalendarEvent,
     updateCalendarEvent,
-    deleteCalendarEvent
+    deleteCalendarEvent,
+    syncAllCalendarEvents
 } = require('../controllers/userController');
 const { verifyToken } = require('../middleware/authMiddleware');
 
@@ -25,5 +26,6 @@ router.get('/calendar-events', verifyToken, getCalendarEvents);
 router.post('/calendar-events', verifyToken, createCalendarEvent);
 router.put('/calendar-events/:eventId', verifyToken, updateCalendarEvent);
 router.delete('/calendar-events/:eventId', verifyToken, deleteCalendarEvent);
+router.post('/calendar-events/sync', verifyToken, syncAllCalendarEvents);
 
 module.exports = router;
