@@ -233,12 +233,27 @@ const syncCalendarEvents = async (req, res) => {
             }
         });
 
+            const lectures = await prisma.lecture.findMany({
+            where: {
+                userId: userId,
+                OR: [
+                    { googleEventId: null },
+                    {
+                        googleEventId: { not: null },
+                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                    }
+                ]
+            }
+        });
+
             const syncResults = {
             eventsCreated: 0,
             eventsUpdated: 0,
             eventsDeleted: 0,
             tasksCreated: 0,
             tasksUpdated: 0,
+            lecturesCreated: 0,
+            lecturesUpdated: 0,
             errors: []
         };
 
@@ -360,6 +375,71 @@ const syncCalendarEvents = async (req, res) => {
             }
         }
 
+            for (const lecture of lectures) {
+            try {
+                const eventSummary = `[Lecture] ${lecture.title}`;
+                const eventDescription = lecture.description || '';
+                const location = lecture.location || '';
+
+                if (lecture.googleEventId) {
+                    await calendar.events.update({
+                        calendarId: user.googleCalendarId,
+                        eventId: lecture.googleEventId,
+                        requestBody: {
+                            summary: eventSummary,
+                            description: eventDescription,
+                            location: location,
+                            start: {
+                                dateTime: lecture.start_time.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            end: {
+                                dateTime: lecture.end_time.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            colorId: '5',
+                            source: {
+                                title: 'Zuno',
+                                url: `${process.env.CLIENT_URL}/calendar`
+                            }
+                        }
+                    });
+                    syncResults.lecturesUpdated++;
+                } else {
+                    const googleEvent = await calendar.events.insert({
+                        calendarId: user.googleCalendarId,
+                        requestBody: {
+                            summary: eventSummary,
+                            description: eventDescription,
+                            location: location,
+                            start: {
+                                dateTime: lecture.start_time.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            end: {
+                                dateTime: lecture.end_time.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            colorId: '5',
+                            source: {
+                                title: 'Zuno',
+                                url: `${process.env.CLIENT_URL}/calendar`
+                            }
+                        }
+                    });
+
+                    await prisma.lecture.update({
+                        where: { id: lecture.id },
+                        data: { googleEventId: googleEvent.data.id }
+                    });
+                    syncResults.lecturesCreated++;
+                }
+            } catch (error) {
+                console.error(`Error syncing lecture ${lecture.id}:`, error);
+                syncResults.errors.push(`Failed to sync lecture "${lecture.title}": ${error.message}`);
+            }
+        }
+
             const deletedEvents = await prisma.event.findMany({
             where: {
                 userId: userId,
@@ -424,10 +504,108 @@ const syncCalendarEvents = async (req, res) => {
     }
 };
 
+const syncLectureToGoogleCalendar = async (userId, lectureId) => {
+    try {
+        await setupOAuthClient(userId);
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                googleCalendarId: true
+            }
+        });
+
+        if (!user.googleCalendarId) {
+            throw new Error('Zuno calendar not set up');
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+        const lecture = await prisma.lecture.findUnique({
+            where: { id: lectureId },
+            include: {
+                course: {
+                    select: {
+                        course_name: true
+                    }
+                }
+            }
+        });
+
+        if (!lecture) {
+            throw new Error(`Lecture with ID ${lectureId} not found`);
+        }
+
+        const eventSummary = `[Lecture] ${lecture.title}`;
+        const eventDescription = lecture.description || '';
+        const location = lecture.location || '';
+
+        if (lecture.googleEventId) {
+            await calendar.events.update({
+                calendarId: user.googleCalendarId,
+                eventId: lecture.googleEventId,
+                requestBody: {
+                    summary: eventSummary,
+                    description: eventDescription,
+                    location: location,
+                    start: {
+                        dateTime: lecture.start_time.toISOString(),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    },
+                    end: {
+                        dateTime: lecture.end_time.toISOString(),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    },
+                    colorId: '5',
+                    source: {
+                        title: 'Zuno',
+                        url: `${process.env.CLIENT_URL}/calendar`
+                    }
+                }
+            });
+
+            return lecture.googleEventId;
+        } else {
+            const googleEvent = await calendar.events.insert({
+                calendarId: user.googleCalendarId,
+                requestBody: {
+                    summary: eventSummary,
+                    description: eventDescription,
+                    location: location,
+                    start: {
+                        dateTime: lecture.start_time.toISOString(),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    },
+                    end: {
+                        dateTime: lecture.end_time.toISOString(),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    },
+                    colorId: '5',
+                    source: {
+                        title: 'Zuno',
+                        url: `${process.env.CLIENT_URL}/calendar`
+                    }
+                }
+            });
+
+            await prisma.lecture.update({
+                where: { id: lectureId },
+                data: { googleEventId: googleEvent.data.id }
+            });
+
+            return googleEvent.data.id;
+        }
+    } catch (error) {
+        console.error(`Error syncing lecture ${lectureId} to Google Calendar:`, error);
+        throw error;
+    }
+};
+
 module.exports = {
     auth,
     callback,
     checkAndCreateCalendar,
     setupZunoCalendar,
-    syncCalendarEvents
+    syncCalendarEvents,
+    syncLectureToGoogleCalendar
 };
