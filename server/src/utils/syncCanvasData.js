@@ -294,9 +294,18 @@ async function syncCanvasData(user) {
                                 end_time: endTime
                             }
                         });
+
+                        if (user.googleAccessToken && user.googleCalendarId) {
+                            try {
+                                const { syncLectureToGoogleCalendar } = require('../controllers/googleController');
+                                await syncLectureToGoogleCalendar(user.id, existingLecture.id);
+                            } catch (syncError) {
+                                console.error(`Error syncing lecture to Google Calendar: ${syncError.message}`);
+                            }
+                        }
                     } else {
                         // Create new lecture
-                        await prisma.lecture.create({
+                        const newLecture = await prisma.lecture.create({
                             data: {
                                 userId: user.id,
                                 courseId: course.id.toString(),
@@ -308,6 +317,15 @@ async function syncCanvasData(user) {
                                 ical_uid: event.uid
                             }
                         });
+
+                        if (user.googleAccessToken && user.googleCalendarId) {
+                            try {
+                                const { syncLectureToGoogleCalendar } = require('../controllers/googleController');
+                                await syncLectureToGoogleCalendar(user.id, newLecture.id);
+                            } catch (syncError) {
+                                console.error(`Error syncing lecture to Google Calendar: ${syncError.message}`);
+                            }
+                        }
                     }
                 }
             } catch (err) {
