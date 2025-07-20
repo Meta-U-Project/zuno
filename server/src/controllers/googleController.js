@@ -7,6 +7,51 @@ const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI
 );
+const setupOAuthClient = async (userId) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            googleAccessToken: true,
+            googleRefreshToken: true,
+            googleTokenExpiry: true
+        }
+    });
+
+    if (!user.googleAccessToken || !user.googleRefreshToken) {
+        throw new Error('Google account not connected');
+    }
+
+    oauth2Client.setCredentials({
+        access_token: user.googleAccessToken,
+        refresh_token: user.googleRefreshToken,
+        expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+    });
+
+    oauth2Client.on('tokens', async (tokens) => {
+        const updates = {};
+
+        if (tokens.access_token) {
+            updates.googleAccessToken = tokens.access_token;
+        }
+
+        if (tokens.refresh_token) {
+            updates.googleRefreshToken = tokens.refresh_token;
+        }
+
+        if (tokens.expiry_date) {
+            updates.googleTokenExpiry = new Date(tokens.expiry_date);
+        }
+
+        if (Object.keys(updates).length > 0) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: updates
+            });
+        }
+    });
+
+    return oauth2Client;
+};
 
 const SCOPES = [
     'https://www.googleapis.com/auth/calendar',
@@ -25,14 +70,9 @@ const auth = async (req, res) => {
     });
     res.redirect(authUrl);
 };
-const setupZunoCalendar = async (userId, tokens) => {
+const setupZunoCalendar = async (userId) => {
     try {
-        oauth2Client.setCredentials({
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            expiry_date: tokens.expiry_date
-        });
-
+        await setupOAuthClient(userId);
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
         const user = await prisma.user.findUnique({
@@ -87,7 +127,7 @@ const callback = async (req, res) => {
             }
         });
         try {
-            await setupZunoCalendar(userId, tokens);
+            await setupZunoCalendar(userId);
         } catch (error) {
             console.error('Error setting up Zuno calendar:', error);
         }
@@ -106,43 +146,33 @@ const callback = async (req, res) => {
 const checkAndCreateCalendar = async (req, res) => {
     try {
         const userId = req.user.id;
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                googleAccessToken: true,
-                googleRefreshToken: true,
-                googleTokenExpiry: true,
-                googleCalendarId: true
+
+        try {
+            const calendarId = await setupZunoCalendar(userId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Zuno calendar setup complete',
+                calendarId
+            });
+        } catch (error) {
+            if (error.message === 'Google account not connected') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Google account not connected. Please connect your Google account first.'
+                });
             }
-        });
 
-        if (!user.googleAccessToken) {
-            return res.status(400).json({
-                success: false,
-                message: 'Google account not connected. Please connect your Google account first.'
-            });
+            if (error.response && error.response.status === 401) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication error. Please reconnect your Google account.',
+                    error: error.message
+                });
+            }
+
+            throw error;
         }
-
-        const tokens = {
-            access_token: user.googleAccessToken,
-            refresh_token: user.googleRefreshToken,
-            expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
-        };
-
-        if (user.googleTokenExpiry && user.googleTokenExpiry < new Date()) {
-            return res.status(401).json({
-                success: false,
-                message: 'Google token expired. Please reconnect your Google account.'
-            });
-        }
-
-        const calendarId = await setupZunoCalendar(userId, tokens);
-
-        res.status(200).json({
-            success: true,
-            message: 'Zuno calendar setup complete',
-            calendarId
-        });
     } catch (error) {
         console.error('Error checking/creating calendar:', error);
         res.status(500).json({
@@ -157,59 +187,39 @@ const syncCalendarEvents = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                googleAccessToken: true,
-                googleRefreshToken: true,
-                googleTokenExpiry: true,
-                googleCalendarId: true
+        try {
+            await setupOAuthClient(userId);
+
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    googleCalendarId: true
+                }
+            });
+
+            if (!user.googleCalendarId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Zuno calendar not set up. Please set up your Zuno calendar first.'
+                });
             }
-        });
 
-        if (!user.googleAccessToken) {
-            return res.status(400).json({
-                success: false,
-                message: 'Google account not connected. Please connect your Google account first.'
-            });
-        }
+            const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-        if (!user.googleCalendarId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Zuno calendar not set up. Please set up your Zuno calendar first.'
-            });
-        }
-
-        oauth2Client.setCredentials({
-            access_token: user.googleAccessToken,
-            refresh_token: user.googleRefreshToken,
-            expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
-        });
-
-        if (user.googleTokenExpiry && user.googleTokenExpiry < new Date()) {
-            return res.status(401).json({
-                success: false,
-                message: 'Google token expired. Please reconnect your Google account.'
-            });
-        }
-
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-        const events = await prisma.event.findMany({
+            const events = await prisma.event.findMany({
             where: {
                 userId: userId,
                 OR: [
                     { googleEventId: null },
                     {
                         googleEventId: { not: null },
-                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Updated in the last 24 hours
+                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
                     }
                 ]
             }
         });
 
-        const tasks = await prisma.task.findMany({
+            const tasks = await prisma.task.findMany({
             where: {
                 userId: userId,
                 addToCalendar: true,
@@ -217,13 +227,13 @@ const syncCalendarEvents = async (req, res) => {
                     { googleEventId: null },
                     {
                         googleEventId: { not: null },
-                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Updated in the last 24 hours
+                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
                     }
                 ]
             }
         });
 
-        const syncResults = {
+            const syncResults = {
             eventsCreated: 0,
             eventsUpdated: 0,
             eventsDeleted: 0,
@@ -232,7 +242,7 @@ const syncCalendarEvents = async (req, res) => {
             errors: []
         };
 
-        for (const event of events) {
+            for (const event of events) {
             try {
                 if (event.googleEventId) {
                     await calendar.events.update({
@@ -291,14 +301,14 @@ const syncCalendarEvents = async (req, res) => {
             }
         }
 
-        for (const task of tasks) {
+            for (const task of tasks) {
             try {
                 const eventSummary = `[Task] ${task.title}`;
                 const eventDescription = task.description || '';
-                const eventDate = task.dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
+                const eventDate = task.dueDate.toISOString().split('T')[0];
 
                 if (task.googleEventId) {
-                    ndar.events.update({
+                    await calendar.events.update({
                         calendarId: user.googleCalendarId,
                         eventId: task.googleEventId,
                         requestBody: {
@@ -350,7 +360,7 @@ const syncCalendarEvents = async (req, res) => {
             }
         }
 
-        const deletedEvents = await prisma.event.findMany({
+            const deletedEvents = await prisma.event.findMany({
             where: {
                 userId: userId,
                 googleEventId: { not: null },
@@ -358,7 +368,7 @@ const syncCalendarEvents = async (req, res) => {
             }
         });
 
-        for (const event of deletedEvents) {
+            for (const event of deletedEvents) {
             try {
                 await calendar.events.delete({
                     calendarId: user.googleCalendarId,
@@ -376,17 +386,34 @@ const syncCalendarEvents = async (req, res) => {
                 syncResults.errors.push(`Failed to delete event "${event.title}": ${error.message}`);
             }
         }
+            await prisma.user.update({
+                where: { id: userId },
+                data: { lastGoogleSync: new Date() }
+            });
 
-        await prisma.user.update({
-            where: { id: userId },
-            data: { lastGoogleSync: new Date() }
-        });
+            res.status(200).json({
+                success: true,
+                message: 'Calendar sync completed',
+                results: syncResults
+            });
+        } catch (error) {
+            if (error.message === 'Google account not connected') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Google account not connected. Please connect your Google account first.'
+                });
+            }
 
-        res.status(200).json({
-            success: true,
-            message: 'Calendar sync completed',
-            results: syncResults
-        });
+            if (error.response && error.response.status === 401) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication error. Please reconnect your Google account.',
+                    error: error.message
+                });
+            }
+
+            throw error;
+        }
     } catch (error) {
         console.error('Error syncing calendar events:', error);
         res.status(500).json({
