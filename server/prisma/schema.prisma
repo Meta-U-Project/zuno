@@ -231,6 +231,7 @@ model Lecture {
   start_time  DateTime
   end_time    DateTime
   ical_uid    String?  @unique
+  googleEventId String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
