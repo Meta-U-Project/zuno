@@ -21,17 +21,40 @@ const CalendarPage = () => {
     const [taskBlocksMap, setTaskBlocksMap] = useState({});
     const [selectedBlocks, setSelectedBlocks] = useState({});
 
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncResult, setSyncResult] = useState(null);
+    const [showSyncModal, setShowSyncModal] = useState(false);
+    const [googleConnected, setGoogleConnected] = useState(false);
+
     const eventColors = {
         assignment: { bg: '#FF0000', border: '#FF0000' },
         quiz: { bg: '#00FF00', border: '#00FF00' },
         discussion: { bg: '#FF69B4', border: '#FF69B4' },
         task_block: { bg: '#808080', border: '#808080' },
+        user_task_block: { bg: '#7735e2', border: '#7735e2' },
         class_session: { bg: '#1c79de', border: '#1c79de' },
     };
 
-    const getEventColor = (type) => {
-        return eventColors[type] || { bg: '#808080', border: '#808080' }; // Default gray color for unknown event types
+    const getEventColor = (type, source) => {
+        if (type === 'task_block' && source === 'user') {
+            return eventColors['user_task_block'];
+        }
+        return eventColors[type] || { bg: '#808080', border: '#808080' };
     };
+
+    const checkGoogleConnection = useCallback(async () => {
+        try {
+            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/user/integrations`, {
+                withCredentials: true
+            });
+
+            if (response.status === 200) {
+                setGoogleConnected(response.data.googleConnected);
+            }
+        } catch (err) {
+            console.error('Error checking Google connection:', err);
+        }
+    }, []);
 
     const fetchCalendarEvents = useCallback(async () => {
         try {
@@ -49,7 +72,8 @@ const CalendarPage = () => {
             if (eventsResponse.status === 200 && classSessionsResponse.status === 200) {
                 const transformedEvents = eventsResponse.data.map(event => {
                     const eventType = event.type || 'other';
-                    const colors = getEventColor(eventType);
+                    const source = event.source || 'canvas';
+                    const colors = getEventColor(eventType, source);
 
                     return {
                         id: event.id,
@@ -61,7 +85,8 @@ const CalendarPage = () => {
                         extendedProps: {
                             courseId: event.courseId,
                             courseName: event.courseName,
-                            type: eventType
+                            type: eventType,
+                            source: source
                         }
                     };
                 });
@@ -143,6 +168,9 @@ const CalendarPage = () => {
                             }
                         });
 
+                        const taskSource = task.source || 'user';
+                        const colors = getEventColor('task_block', taskSource);
+
                         const taskBlocks = task.blocks.map(block => {
                             const startTime = new Date(block.start_time);
                             const formattedTime = startTime.toLocaleTimeString('en-US', {
@@ -162,13 +190,14 @@ const CalendarPage = () => {
                                 title: `Study Block for ${task.title} (${formattedTime})`,
                                 start: block.start_time,
                                 end: block.end_time,
-                                backgroundColor: getEventColor('task_block').bg,
-                                borderColor: getEventColor('task_block').border,
+                                backgroundColor: colors.bg,
+                                borderColor: colors.border,
                                 textColor: '#000000',
                                 extendedProps: {
                                     taskId: task.id,
                                     taskTitle: task.title,
                                     type: 'task_block',
+                                    source: taskSource,
                                     isPending: true,
                                     duration: block.duration,
                                     formattedDate: formattedDate,
@@ -196,9 +225,50 @@ const CalendarPage = () => {
         }
     }, []);
 
+    const syncWithGoogleCalendar = async () => {
+        try {
+            setIsSyncing(true);
+            setSyncResult(null);
+
+            const setupResponse = await axios.get(
+                `${import.meta.env.VITE_SERVER_URL}/google/calendar/setup`,
+                { withCredentials: true }
+            );
+
+            if (setupResponse.status === 200) {
+                const syncResponse = await axios.post(
+                    `${import.meta.env.VITE_SERVER_URL}/user/calendar-events/sync`,
+                    {},
+                    { withCredentials: true }
+                );
+
+                if (syncResponse.status === 200) {
+                    setSyncResult({
+                        success: true,
+                        message: syncResponse.data.message,
+                        details: syncResponse.data
+                    });
+                }
+            }
+
+            setShowSyncModal(true);
+        } catch (err) {
+            console.error('Error syncing with Google Calendar:', err);
+            setSyncResult({
+                success: false,
+                message: err.response?.data?.message || 'Failed to sync with Google Calendar',
+                error: err.message
+            });
+            setShowSyncModal(true);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     useEffect(() => {
         fetchCalendarEvents();
         checkForTasksNeedingScheduling();
+        checkGoogleConnection();
 
         const handleBeforeUnload = (e) => {
             if (hasUnsavedBlocks) {
@@ -213,7 +283,7 @@ const CalendarPage = () => {
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [fetchCalendarEvents, checkForTasksNeedingScheduling, hasUnsavedBlocks]);
+    }, [fetchCalendarEvents, checkForTasksNeedingScheduling, checkGoogleConnection, hasUnsavedBlocks]);
 
     const handleViewChange = (view) => {
         const calendarApi = calendarRef.current.getApi();
@@ -317,6 +387,21 @@ const CalendarPage = () => {
                                 </svg>
                                 Add Event
                             </button>
+
+                            {googleConnected && (
+                                <button
+                                    className="calendar-sync-button"
+                                    onClick={syncWithGoogleCalendar}
+                                    disabled={isSyncing}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        <path d="M12 8L16 12L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M16 12H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
+                                    {isSyncing ? 'Syncing...' : 'Sync with Google'}
+                                </button>
+                            )}
 
                             <div className="calendar-view-switcher">
                                 <button
@@ -645,6 +730,57 @@ const CalendarPage = () => {
                         </div>
                     )}
 
+                    {showSyncModal && syncResult && (
+                        <div className="sync-modal-overlay">
+                            <div className="sync-modal">
+                                <div className="sync-modal-header">
+                                    <h2>Google Calendar Sync</h2>
+                                    <button
+                                        className="close-button"
+                                        onClick={() => setShowSyncModal(false)}
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                                <div className="sync-modal-content">
+                                    <div className={`sync-result ${syncResult.success ? 'success' : 'error'}`}>
+                                        <div className="sync-icon">
+                                            {syncResult.success ? (
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
+                                            ) : (
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <div className="sync-message">
+                                            <h3>{syncResult.success ? 'Sync Successful' : 'Sync Failed'}</h3>
+                                            <p>{syncResult.message}</p>
+                                        </div>
+                                    </div>
+
+                                    {syncResult.success && syncResult.details && (
+                                        <div className="sync-details">
+                                            <p>Successfully synced {syncResult.details.results?.filter(r => r.success).length || 0} events.</p>
+                                            {syncResult.details.results?.filter(r => !r.success).length > 0 && (
+                                                <p>Failed to sync {syncResult.details.results.filter(r => !r.success).length} events.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="sync-modal-footer">
+                                    <button
+                                        className="primary-button"
+                                        onClick={() => setShowSyncModal(false)}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
