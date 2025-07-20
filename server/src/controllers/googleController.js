@@ -25,6 +25,52 @@ const auth = async (req, res) => {
     });
     res.redirect(authUrl);
 };
+const setupZunoCalendar = async (userId, tokens) => {
+    try {
+        oauth2Client.setCredentials({
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expiry_date: tokens.expiry_date
+        });
+
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (user.googleCalendarId) {
+            try {
+                await calendar.calendars.get({
+                    calendarId: user.googleCalendarId
+                });
+                return user.googleCalendarId;
+            } catch (error) {
+                console.error('Calendar not found, creating a new one:', error.message);
+            }
+        }
+
+        const newCalendar = await calendar.calendars.insert({
+            requestBody: {
+                summary: 'Zuno Calendar',
+                description: 'Calendar for Zuno academic events and study blocks',
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            }
+        });
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                googleCalendarId: newCalendar.data.id
+            }
+        });
+
+        return newCalendar.data.id;
+    } catch (error) {
+        console.error('Error setting up Zuno calendar:', error);
+        throw error;
+    }
+};
 
 const callback = async (req, res) => {
     try {
@@ -40,23 +86,321 @@ const callback = async (req, res) => {
                 googleTokenExpiry: new Date(tokens.expiry_date)
             }
         });
-
-        // Check if Canvas is also connected
+        try {
+            await setupZunoCalendar(userId, tokens);
+        } catch (error) {
+            console.error('Error setting up Zuno calendar:', error);
+        }
         const canvasConnected = !!updatedUser.canvasAccessToken;
 
         if (canvasConnected) {
-            // Both integrations complete, redirect to dashboard
             res.redirect(`${process.env.CLIENT_URL}/dashboard?google=connected`);
         } else {
-            // Still need Canvas, redirect to connect page
             res.redirect(`${process.env.CLIENT_URL}/connect?google=connected`);
         }
     } catch (error) {
+        console.error('Google OAuth Failed:', error);
         res.status(500).send("Google OAuth Failed.");
+    }
+};
+const checkAndCreateCalendar = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                googleAccessToken: true,
+                googleRefreshToken: true,
+                googleTokenExpiry: true,
+                googleCalendarId: true
+            }
+        });
+
+        if (!user.googleAccessToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Google account not connected. Please connect your Google account first.'
+            });
+        }
+
+        const tokens = {
+            access_token: user.googleAccessToken,
+            refresh_token: user.googleRefreshToken,
+            expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+        };
+
+        if (user.googleTokenExpiry && user.googleTokenExpiry < new Date()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Google token expired. Please reconnect your Google account.'
+            });
+        }
+
+        const calendarId = await setupZunoCalendar(userId, tokens);
+
+        res.status(200).json({
+            success: true,
+            message: 'Zuno calendar setup complete',
+            calendarId
+        });
+    } catch (error) {
+        console.error('Error checking/creating calendar:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to set up Zuno calendar',
+            error: error.message
+        });
+    }
+};
+
+const syncCalendarEvents = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                googleAccessToken: true,
+                googleRefreshToken: true,
+                googleTokenExpiry: true,
+                googleCalendarId: true
+            }
+        });
+
+        if (!user.googleAccessToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Google account not connected. Please connect your Google account first.'
+            });
+        }
+
+        if (!user.googleCalendarId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Zuno calendar not set up. Please set up your Zuno calendar first.'
+            });
+        }
+
+        oauth2Client.setCredentials({
+            access_token: user.googleAccessToken,
+            refresh_token: user.googleRefreshToken,
+            expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+        });
+
+        if (user.googleTokenExpiry && user.googleTokenExpiry < new Date()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Google token expired. Please reconnect your Google account.'
+            });
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+        const events = await prisma.event.findMany({
+            where: {
+                userId: userId,
+                OR: [
+                    { googleEventId: null },
+                    {
+                        googleEventId: { not: null },
+                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Updated in the last 24 hours
+                    }
+                ]
+            }
+        });
+
+        const tasks = await prisma.task.findMany({
+            where: {
+                userId: userId,
+                addToCalendar: true,
+                OR: [
+                    { googleEventId: null },
+                    {
+                        googleEventId: { not: null },
+                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Updated in the last 24 hours
+                    }
+                ]
+            }
+        });
+
+        const syncResults = {
+            eventsCreated: 0,
+            eventsUpdated: 0,
+            eventsDeleted: 0,
+            tasksCreated: 0,
+            tasksUpdated: 0,
+            errors: []
+        };
+
+        for (const event of events) {
+            try {
+                if (event.googleEventId) {
+                    await calendar.events.update({
+                        calendarId: user.googleCalendarId,
+                        eventId: event.googleEventId,
+                        requestBody: {
+                            summary: event.title,
+                            description: event.description || '',
+                            start: {
+                                dateTime: event.startTime.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            end: {
+                                dateTime: event.endTime.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            colorId: '3',
+                            source: {
+                                title: 'Zuno',
+                                url: `${process.env.CLIENT_URL}/calendar`
+                            }
+                        }
+                    });
+                    syncResults.eventsUpdated++;
+                } else {
+                    const googleEvent = await calendar.events.insert({
+                        calendarId: user.googleCalendarId,
+                        requestBody: {
+                            summary: event.title,
+                            description: event.description || '',
+                            start: {
+                                dateTime: event.startTime.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            end: {
+                                dateTime: event.endTime.toISOString(),
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                            colorId: '3',
+                            source: {
+                                title: 'Zuno',
+                                url: `${process.env.CLIENT_URL}/calendar`
+                            }
+                        }
+                    });
+
+                    await prisma.event.update({
+                        where: { id: event.id },
+                        data: { googleEventId: googleEvent.data.id }
+                    });
+                    syncResults.eventsCreated++;
+                }
+            } catch (error) {
+                console.error(`Error syncing event ${event.id}:`, error);
+                syncResults.errors.push(`Failed to sync event "${event.title}": ${error.message}`);
+            }
+        }
+
+        for (const task of tasks) {
+            try {
+                const eventSummary = `[Task] ${task.title}`;
+                const eventDescription = task.description || '';
+                const eventDate = task.dueDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+                if (task.googleEventId) {
+                    ndar.events.update({
+                        calendarId: user.googleCalendarId,
+                        eventId: task.googleEventId,
+                        requestBody: {
+                            summary: eventSummary,
+                            description: eventDescription,
+                            start: {
+                                date: eventDate,
+                            },
+                            end: {
+                                date: eventDate,
+                            },
+                            colorId: '10',
+                            source: {
+                                title: 'Zuno',
+                                url: `${process.env.CLIENT_URL}/tasks`
+                            }
+                        }
+                    });
+                    syncResults.tasksUpdated++;
+                } else {
+                    const googleEvent = await calendar.events.insert({
+                        calendarId: user.googleCalendarId,
+                        requestBody: {
+                            summary: eventSummary,
+                            description: eventDescription,
+                            start: {
+                                date: eventDate,
+                            },
+                            end: {
+                                date: eventDate,
+                            },
+                            colorId: '10',
+                            source: {
+                                title: 'Zuno',
+                                url: `${process.env.CLIENT_URL}/tasks`
+                            }
+                        }
+                    });
+
+                    await prisma.task.update({
+                        where: { id: task.id },
+                        data: { googleEventId: googleEvent.data.id }
+                    });
+                    syncResults.tasksCreated++;
+                }
+            } catch (error) {
+                console.error(`Error syncing task ${task.id}:`, error);
+                syncResults.errors.push(`Failed to sync task "${task.title}": ${error.message}`);
+            }
+        }
+
+        const deletedEvents = await prisma.event.findMany({
+            where: {
+                userId: userId,
+                googleEventId: { not: null },
+                deleted: true
+            }
+        });
+
+        for (const event of deletedEvents) {
+            try {
+                await calendar.events.delete({
+                    calendarId: user.googleCalendarId,
+                    eventId: event.googleEventId
+                });
+
+                await prisma.event.update({
+                    where: { id: event.id },
+                    data: { googleEventId: null }
+                });
+
+                syncResults.eventsDeleted++;
+            } catch (error) {
+                console.error(`Error deleting event ${event.id}:`, error);
+                syncResults.errors.push(`Failed to delete event "${event.title}": ${error.message}`);
+            }
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { lastGoogleSync: new Date() }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Calendar sync completed',
+            results: syncResults
+        });
+    } catch (error) {
+        console.error('Error syncing calendar events:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to sync calendar events',
+            error: error.message
+        });
     }
 };
 
 module.exports = {
     auth,
-    callback
+    callback,
+    checkAndCreateCalendar,
+    setupZunoCalendar,
+    syncCalendarEvents
 };
