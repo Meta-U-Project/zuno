@@ -35,8 +35,6 @@ async function getEligibleTasks(userId) {
 
     const allEligibleTasks = [...tasksWithDeadlines, ...tasksWithoutDeadlines];
 
-    console.log(`Found ${tasksWithDeadlines.length} tasks with deadlines and ${tasksWithoutDeadlines.length} tasks without deadlines`);
-
     return allEligibleTasks;
 }
 
@@ -63,21 +61,54 @@ async function getPrioritizedTasks(userId) {
 }
 
 async function getExistingEvents(userId, startDate = new Date(), endDate = null) {
-    const whereClause = {
+    const calendarWhereClause = {
         userId,
         start_time: { gte: startDate }
     };
 
     if (endDate) {
-        whereClause.start_time.lte = endDate;
+        calendarWhereClause.start_time.lte = endDate;
     }
 
-    const existingEvents = await prisma.calendarEvent.findMany({
-        where: whereClause,
+    const calendarEvents = await prisma.calendarEvent.findMany({
+        where: calendarWhereClause,
         orderBy: { start_time: 'asc' }
     });
 
-    return existingEvents;
+    const lectureWhereClause = {
+        userId,
+        start_time: { gte: startDate }
+    };
+
+    if (endDate) {
+        lectureWhereClause.start_time.lte = endDate;
+    }
+
+    const lectures = await prisma.lecture.findMany({
+        where: lectureWhereClause,
+        orderBy: { start_time: 'asc' }
+    });
+
+    const lectureEvents = lectures.map(lecture => ({
+        id: `lecture-${lecture.id}`,
+        userId: lecture.userId,
+        start_time: lecture.start_time,
+        end_time: lecture.end_time,
+        type: 'CLASS_SESSION',
+        is_group_event: false,
+        location: lecture.location || 'Classroom',
+        title: lecture.title
+    }));
+
+    const allEvents = [...calendarEvents, ...lectureEvents];
+
+    allEvents.sort((a, b) => {
+        const aTime = a.start_time instanceof Date ? a.start_time : new Date(a.start_time);
+        const bTime = b.start_time instanceof Date ? b.start_time : new Date(b.start_time);
+        return aTime - bTime;
+    });
+
+    return allEvents;
 }
 
 function getFreeTimeSlots(existingEvents, startDate, endDate) {
@@ -87,6 +118,8 @@ function getFreeTimeSlots(existingEvents, startDate, endDate) {
         endDate = new Date(endDate);
     }
 
+    const now = new Date();
+
     for (let day = new Date(startDate); day.getTime() <= endDate.getTime(); day.setDate(day.getDate() + 1)) {
         const startOfDay = new Date(day);
         startOfDay.setHours(9, 0, 0, 0);
@@ -95,6 +128,11 @@ function getFreeTimeSlots(existingEvents, startDate, endDate) {
         endOfDay.setHours(20, 0, 0, 0);
 
         let cursor = new Date(startOfDay);
+
+        const isToday = day.toDateString() === now.toDateString();
+        if (isToday && now > cursor) {
+            cursor = new Date(Math.min(now.getTime(), endOfDay.getTime())); // clip to endOfDay
+        }
 
         const eventsToday = existingEvents.filter(ev => {
             const eventStart = ev.start_time instanceof Date ? ev.start_time : new Date(ev.start_time);
@@ -148,35 +186,15 @@ async function getAvailableStudySlots(userId, startDate, endDate) {
 
 async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
     try {
-        console.log(`Getting available study slots for user: ${userId}`);
-        console.log(`Date range: ${startDate} to ${endDate}`);
-
         const existingEvents = await getExistingEvents(userId, startDate, endDate);
-        console.log(`Found ${existingEvents.length} existing events`);
-
         const freeSlots = getFreeTimeSlots(existingEvents, startDate, endDate);
-        console.log(`Found ${freeSlots.length} free time slots`);
-
-        if (freeSlots.length > 0) {
-            console.log('Sample free slots:', freeSlots.slice(0, 3));
-        }
-
         const preferenceMap = await getUserPreferenceMap(userId, prisma);
-        console.log('User preference map:', preferenceMap);
-
         let availableSlots = filterSlotsByPreferences(freeSlots, preferenceMap);
-        console.log(`After filtering by preferences: ${availableSlots.length} available slots`);
-
-        if (availableSlots.length > 0) {
-            console.log('Sample available slots:', availableSlots.slice(0, 3));
-        }
 
         if (availableSlots.length === 0) {
-            console.log('No slots match user preferences. Falling back to all available free slots');
             availableSlots = freeSlots.filter(slot => slot.duration >= 15);
 
             if (availableSlots.length === 0) {
-                console.log('No available study slots found');
                 return [];
             }
         }
@@ -229,11 +247,6 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
                 deadline: task.deadline ? new Date(task.deadline) : null,
                 title: task.title || 'Untitled Task'
             });
-        });
-
-        console.log('Task queue created with', taskQueue.length, 'tasks');
-        taskQueue.forEach((task, index) => {
-            console.log(`Task ${index + 1}: ${task.title}, Priority: ${task.priority}, Study Time: ${task.remainingTime} minutes`);
         });
 
         const dayKeys = Object.keys(slotsByDay).sort();
@@ -317,15 +330,10 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
                             createdById: userId
                         };
 
-                        console.log(`Scheduling block for task "${taskPortion.title}": ${startTime.toLocaleString()} - ${endTime.toLocaleString()} (${maxTimeForSlot} minutes)`);
-                        console.log(`  Remaining time before: ${taskPortion.remainingTime} minutes`);
-
                         scheduledBlocks.push(studyBlock);
 
                         dailyStudyTime[dayKey] = (dailyStudyTime[dayKey] || 0) + maxTimeForSlot;
                         taskPortion.remainingTime -= maxTimeForSlot;
-
-                        console.log(`  Remaining time after: ${taskPortion.remainingTime} minutes`);
 
                         const remainingSlotTime = slot.duration - maxTimeForSlot;
                         if (remainingSlotTime >= MIN_BLOCK_SIZE) {
@@ -361,7 +369,6 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
             }
             else if (!madeProgress) {
                 const taskName = taskPortion.originalTask.title || taskPortion.originalTask.name || 'Unknown Task';
-                console.log(`Could not schedule more time for task ${taskName}. Remaining time: ${taskPortion.remainingTime} minutes`);
                 taskIndex++;
             }
             else if (taskPortion.remainingTime <= 0 || !madeProgress) {
@@ -371,7 +378,6 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
             if (taskIndex >= taskQueue.length) {
                 const unfinishedTasks = taskQueue.filter(task => task.remainingTime > 0);
                 if (unfinishedTasks.length > 0 && passCount < MAX_PASSES - 1) {
-                    console.log(`Starting pass ${passCount + 2} for ${unfinishedTasks.length} unfinished tasks`);
                     taskIndex = 0;
                     passCount++;
                 } else {
@@ -381,17 +387,6 @@ async function scheduleStudyBlocks(userId, tasks, startDate, endDate) {
         }
 
         const unscheduledTasks = taskQueue.filter(task => task.remainingTime > 0);
-        if (unscheduledTasks.length > 0) {
-            console.log(`${unscheduledTasks.length} tasks could not be fully scheduled:`);
-            unscheduledTasks.forEach(task => {
-                console.log(`  - ${task.title}: ${task.remainingTime} minutes remaining`);
-            });
-        }
-
-        console.log('Daily study time scheduled:');
-        Object.entries(dailyStudyTime).forEach(([day, minutes]) => {
-            console.log(`   ${day}: ${minutes} minutes (${(minutes/60).toFixed(1)} hours)`);
-        });
 
         return scheduledBlocks;
     } catch (error) {
@@ -423,11 +418,7 @@ async function saveStudyBlocks(studyBlocks) {
                     requiresStudyBlock: false
                 }
             });
-
-            console.log(`Updated ${taskIds.length} tasks to no longer require study blocks`);
         }
-
-        console.log(`Created ${createdEvents.length} study blocks`);
         return createdEvents;
     } catch (error) {
         console.error('Error saving study blocks:', error);

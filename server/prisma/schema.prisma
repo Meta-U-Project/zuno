@@ -45,6 +45,7 @@ model User {
   analytics       Analytics?
   announcements   Announcement[]
   createdEvents   CalendarEvent[]  @relation("CreatedEvents")
+  lectures        Lecture[]        @relation("UserLectures")
 }
 
 enum DifficultyLevel {
@@ -66,6 +67,7 @@ enum EventType {
   TASK_BLOCK
   GROUP_SESSION
   AVAILABILITY
+  CLASS_SESSION
 }
 
 enum NotificationType {
@@ -90,6 +92,7 @@ model Course {
   term            String
   tasks           Task[]
   studyGroups     StudyGroup[]
+  lectures        Lecture[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -109,6 +112,7 @@ model Task {
   studyTime       Float?
   completed       Boolean  @default(false)
   requiresStudyBlock Boolean @default(false)
+  source          String   @default("user")
   calendarEvents  CalendarEvent[]
 
   createdAt       DateTime @default(now())
@@ -208,6 +212,23 @@ model Announcement {
   message     String
   postedAt    DateTime
   url         String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lecture {
+  id          String   @id @default(uuid())
+  user        User     @relation("UserLectures", fields: [userId], references: [id])
+  userId      String
+  course      Course   @relation(fields: [courseId], references: [id])
+  courseId    String
+  title       String
+  description String?
+  location    String?
+  start_time  DateTime
+  end_time    DateTime
+  ical_uid    String?  @unique
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -26,10 +26,11 @@ const CalendarPage = () => {
         quiz: { bg: '#00FF00', border: '#00FF00' },
         discussion: { bg: '#FF69B4', border: '#FF69B4' },
         task_block: { bg: '#808080', border: '#808080' },
+        class_session: { bg: '#1c79de', border: '#1c79de' },
     };
 
     const getEventColor = (type) => {
-        return eventColors[type] || eventColors.other;
+        return eventColors[type] || { bg: '#808080', border: '#808080' }; // Default gray color for unknown event types
     };
 
     const fetchCalendarEvents = useCallback(async () => {
@@ -37,12 +38,16 @@ const CalendarPage = () => {
             setLoading(true);
             setError(null);
 
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
+            const eventsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
                 withCredentials: true
             });
 
-            if (response.status === 200) {
-                const transformedEvents = response.data.map(event => {
+            const classSessionsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/classsessions`, {
+                withCredentials: true
+            });
+
+            if (eventsResponse.status === 200 && classSessionsResponse.status === 200) {
+                const transformedEvents = eventsResponse.data.map(event => {
                     const eventType = event.type || 'other';
                     const colors = getEventColor(eventType);
 
@@ -61,7 +66,28 @@ const CalendarPage = () => {
                     };
                 });
 
-                setEvents(transformedEvents);
+                const transformedClassSessions = classSessionsResponse.data.map(session => {
+                    const colors = getEventColor('class_session');
+
+                    return {
+                        id: `class_${session.id}`,
+                        title: session.title,
+                        start: session.start_time,
+                        end: session.end_time,
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        textColor: '#ffffff',
+                        extendedProps: {
+                            courseId: session.courseId,
+                            courseName: session.courseName,
+                            type: 'class_session',
+                            location: session.location
+                        }
+                    };
+                });
+
+                // Combine both types of events
+                setEvents([...transformedEvents, ...transformedClassSessions]);
             }
         } catch (err) {
             console.error('Error fetching calendar events:', err);
@@ -216,7 +242,7 @@ const CalendarPage = () => {
     };
 
     const handleAddEvent = () => {
-        console.log('Add Event clicked - Coming soon!');
+        //
     };
 
     const getCurrentTitle = () => {
@@ -338,15 +364,8 @@ const CalendarPage = () => {
                                 eventDisplay="block"
                                 dayMaxEvents={3}
                                 moreLinkClick="popover"
-                                eventClick={(info) => {
-                                    console.log('Event clicked:', info.event.title);
-                                    if (info.event.extendedProps.courseName) {
-                                        console.log('Course:', info.event.extendedProps.courseName);
-                                    }
-                                }}
-                                dateClick={(info) => {
-                                    console.log('Date clicked:', info.dateStr);
-                                }}
+
+
                                 eventDidMount={(info) => {
                                     const event = info.event;
                                     const isPending = event.extendedProps.isPending;
@@ -396,16 +415,45 @@ const CalendarPage = () => {
                                         `;
                                     }
 
+                                    if (event.extendedProps.location) {
+                                        tooltipContent += `
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Location:</span>
+                                                <span class="tooltip-value">${event.extendedProps.location}</span>
+                                            </div>
+                                        `;
+                                    }
+
                                     tooltipContent += `
                                             <div class="tooltip-detail">
                                                 <span class="tooltip-label">Date:</span>
-                                                <span class="tooltip-value">${new Date(event.start).toLocaleString('en-US', {
+                                                <span class="tooltip-value">${new Date(event.start).toLocaleDateString('en-US', {
                                                     weekday: 'short',
                                                     month: 'short',
-                                                    day: 'numeric',
-                                                    hour: 'numeric',
-                                                    minute: '2-digit'
+                                                    day: 'numeric'
                                                 })}</span>
+                                            </div>
+                                            <div class="tooltip-detail">
+                                                <span class="tooltip-label">Time:</span>
+                                                <span class="tooltip-value">
+                                                    ${event.end && new Date(event.start).getTime() !== new Date(event.end).getTime() ? `
+                                                    ${new Date(event.start).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })} - ${new Date(event.end).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}
+                                                    ` : `
+                                                    <strong>Deadline:</strong> ${new Date(event.start).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}
+                                                    `}
+                                                </span>
                                             </div>
                                     `;
 
@@ -429,6 +477,16 @@ const CalendarPage = () => {
                                     info.el.addEventListener('mouseenter', () => {
                                         const rect = info.el.getBoundingClientRect();
                                         tooltip.style.left = `${rect.left + window.scrollX}px`;
+                                        const tooltipWidth = tooltip.offsetWidth;
+                                        const windowWidth = window.innerWidth;
+
+
+                                        let leftPos = rect.left + window.scrollX;
+                                        if (leftPos + tooltipWidth > windowWidth - 20) {
+                                            leftPos = windowWidth - tooltipWidth - 20;
+                                        }
+
+                                        tooltip.style.left = `${leftPos}px`;
                                         tooltip.style.top = `${rect.bottom + window.scrollY + 10}px`;
                                         tooltip.style.display = 'block';
                                     });

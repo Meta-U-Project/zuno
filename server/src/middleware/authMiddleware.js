@@ -39,9 +39,6 @@ const createPasswordResetToken = ({_id, email, password}) => {
 const createPasswordResetUrl = (id, token) =>
     `${process.env.CLIENT_URL}/reset-password/${id}/${token}`;
 
-
-console.log(process.env.EMAIL_USER);
-console.log(process.env.EMAIL_PASS);
 const transporter = createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
