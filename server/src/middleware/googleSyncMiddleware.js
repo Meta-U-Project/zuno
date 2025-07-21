@@ -1,6 +1,7 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 const { google } = require('googleapis');
+const { setupZunoCalendar } = require('../controllers/googleController');
 
 const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -54,6 +55,19 @@ const setupOAuthClient = async (userId) => {
     return oauth2Client;
 };
 
+const checkCalendarExists = async (auth, calendarId) => {
+    try {
+        const calendar = google.calendar({ version: 'v3', auth });
+        await calendar.calendars.get({
+            calendarId: calendarId
+        });
+        return true;
+    } catch (error) {
+        console.error('Calendar check failed:', error.message);
+        return false;
+    }
+};
+
 const syncToGoogleCalendar = async (req, res, next) => {
     try {
         if (!req.user || !req.user.id) {
@@ -73,6 +87,30 @@ const syncToGoogleCalendar = async (req, res, next) => {
 
         if (!user.googleAccessToken || !user.googleRefreshToken || !user.googleCalendarId) {
             return next();
+        }
+
+        const auth = await setupOAuthClient(userId);
+        if (!auth) {
+            return next();
+        }
+
+        if (user.googleCalendarId) {
+            const calendarExists = await checkCalendarExists(auth, user.googleCalendarId);
+            if (!calendarExists) {
+                try {
+                    const newCalendarId = await setupZunoCalendar(userId);
+
+                    await prisma.user.update({
+                        where: { id: userId },
+                        data: { googleCalendarId: newCalendarId }
+                    });
+
+                    user.googleCalendarId = newCalendarId;
+                } catch (error) {
+                    console.error('Failed to recreate calendar:', error);
+                    return next();
+                }
+            }
         }
 
         res.locals.originalData = req.body;
@@ -181,16 +219,46 @@ const syncCalendarEventToGoogle = async (calendar, calendarId, event) => {
 
         let response;
         if (event.googleEventId) {
-            response = await calendar.events.update({
-                calendarId: calendarId,
-                eventId: event.googleEventId,
-                requestBody: eventData
-            });
+            try {
+                response = await calendar.events.update({
+                    calendarId: calendarId,
+                    eventId: event.googleEventId,
+                    requestBody: eventData
+                });
+            } catch (error) {
+                if (error.code === 404) {
+                    response = await calendar.events.insert({
+                        calendarId: calendarId,
+                        requestBody: eventData
+                    });
+                } else {
+                    throw error;
+                }
+            }
         } else {
-            response = await calendar.events.insert({
+            const timeMin = new Date(event.start_time.getTime() - 60000);
+            const timeMax = new Date(event.start_time.getTime() + 60000);
+
+            const existingEvents = await calendar.events.list({
                 calendarId: calendarId,
-                requestBody: eventData
+                timeMin: timeMin.toISOString(),
+                timeMax: timeMax.toISOString(),
+                q: eventData.summary
             });
+
+            if (existingEvents.data.items && existingEvents.data.items.length > 0) {
+                const existingEvent = existingEvents.data.items[0];
+                response = await calendar.events.update({
+                    calendarId: calendarId,
+                    eventId: existingEvent.id,
+                    requestBody: eventData
+                });
+            } else {
+                response = await calendar.events.insert({
+                    calendarId: calendarId,
+                    requestBody: eventData
+                });
+            }
         }
 
         return response.data;
@@ -207,7 +275,7 @@ const syncTaskToGoogle = async (calendar, calendarId, task) => {
         }
 
         const eventData = {
-            summary: `[Task] ${task.title}`,
+            summary: task.title,
             description: task.description || '',
             start: {
                 date: task.deadline.toISOString().split('T')[0],
@@ -224,16 +292,46 @@ const syncTaskToGoogle = async (calendar, calendarId, task) => {
 
         let response;
         if (task.googleEventId) {
-            response = await calendar.events.update({
-                calendarId: calendarId,
-                eventId: task.googleEventId,
-                requestBody: eventData
-            });
+            try {
+                response = await calendar.events.update({
+                    calendarId: calendarId,
+                    eventId: task.googleEventId,
+                    requestBody: eventData
+                });
+            } catch (error) {
+                if (error.code === 404) {
+                    response = await calendar.events.insert({
+                        calendarId: calendarId,
+                        requestBody: eventData
+                    });
+                } else {
+                    throw error;
+                }
+            }
         } else {
-            response = await calendar.events.insert({
+            const dateMin = task.deadline.toISOString().split('T')[0];
+            const dateMax = dateMin;
+
+            const existingEvents = await calendar.events.list({
                 calendarId: calendarId,
-                requestBody: eventData
+                timeMin: `${dateMin}T00:00:00Z`,
+                timeMax: `${dateMax}T23:59:59Z`,
+                q: eventData.summary
             });
+
+            if (existingEvents.data.items && existingEvents.data.items.length > 0) {
+                const existingEvent = existingEvents.data.items[0];
+                response = await calendar.events.update({
+                    calendarId: calendarId,
+                    eventId: existingEvent.id,
+                    requestBody: eventData
+                });
+            } else {
+                response = await calendar.events.insert({
+                    calendarId: calendarId,
+                    requestBody: eventData
+                });
+            }
         }
 
         return response.data;
