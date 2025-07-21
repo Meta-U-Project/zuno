@@ -238,20 +238,21 @@ async function syncCanvasData(user) {
                     update: {
                         title: announcement.title,
                         message: announcement.message,
-                        postedAt: new Date(announcement.posted_at),
+                        postedAt: announcement.posted_at ? new Date(announcement.posted_at) : new Date(),
                     },
                     create: {
                         id: announcement.id.toString(),
                         userId,
                         courseId: course.id.toString(),
+                        courseName: course.name || 'Unknown Course',
                         title: announcement.title,
                         message: announcement.message,
-                        courseName: course.name,
-                        postedAt: new Date(announcement.posted_at),
+                        postedAt: announcement.posted_at ? new Date(announcement.posted_at) : new Date(),
                     }
                 });
             }
         }
+        const lecturesToSync = [];
         for (const course of courseData) {
             try {
                 const icsUrl = course.calendar?.ics;
@@ -284,7 +285,7 @@ async function syncCanvasData(user) {
 
                     if (existingLecture) {
                         // Update existing lecture
-                        await prisma.lecture.update({
+                        const updatedLecture = await prisma.lecture.update({
                             where: { id: existingLecture.id },
                             data: {
                                 title: event.summary || `${course.name} Class Session`,
@@ -296,12 +297,7 @@ async function syncCanvasData(user) {
                         });
 
                         if (user.googleAccessToken && user.googleCalendarId) {
-                            try {
-                                const { syncLectureToGoogleCalendar } = require('../controllers/googleController');
-                                await syncLectureToGoogleCalendar(user.id, existingLecture.id);
-                            } catch (syncError) {
-                                console.error(`Error syncing lecture to Google Calendar: ${syncError.message}`);
-                            }
+                            lecturesToSync.push(updatedLecture);
                         }
                     } else {
                         // Create new lecture
@@ -319,12 +315,7 @@ async function syncCanvasData(user) {
                         });
 
                         if (user.googleAccessToken && user.googleCalendarId) {
-                            try {
-                                const { syncLectureToGoogleCalendar } = require('../controllers/googleController');
-                                await syncLectureToGoogleCalendar(user.id, newLecture.id);
-                            } catch (syncError) {
-                                console.error(`Error syncing lecture to Google Calendar: ${syncError.message}`);
-                            }
+                            lecturesToSync.push(newLecture);
                         }
                     }
                 }
@@ -332,8 +323,30 @@ async function syncCanvasData(user) {
                 console.error(`Error syncing ICS for course ${course.name}:`, err.message);
             }
         }
+        if (user.googleAccessToken && user.googleCalendarId && lecturesToSync.length > 0) {
+            try {
+                const googleController = require('../controllers/googleController');
 
+                await googleController.setupZunoCalendar(user.id);
 
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const lecture of lecturesToSync) {
+                    try {
+                        await googleController.syncLectureToGoogleCalendar(user.id, lecture.id);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error syncing lecture ${lecture.id} to Google Calendar:`, error);
+                        errorCount++;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+            } catch (syncError) {
+                console.error(`Error batch syncing lectures to Google Calendar:`, syncError);
+            }
+        }
         // Sync analytics
         const tasks = await prisma.task.findMany({
             where: { userId: user.id }

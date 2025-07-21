@@ -336,12 +336,25 @@ const syncWithGoogleCalendar = async (userId, event, operation = 'create') => {
             });
 
             if (existingEvent && existingEvent.googleEventId) {
-                const response = await calendar.events.update({
-                    calendarId: user.googleCalendarId,
-                    eventId: existingEvent.googleEventId,
-                    requestBody: googleEvent
-                });
-                result = response.data.id;
+                try {
+                    const response = await calendar.events.update({
+                        calendarId: user.googleCalendarId,
+                        eventId: existingEvent.googleEventId,
+                        requestBody: googleEvent
+                    });
+                    result = response.data.id;
+                } catch (updateError) {
+                    if (updateError.message.includes('Not Found') ||
+                        (updateError.response && updateError.response.status === 404)) {
+                        const response = await calendar.events.insert({
+                            calendarId: user.googleCalendarId,
+                            requestBody: googleEvent
+                        });
+                        result = response.data.id;
+                    } else {
+                        throw updateError;
+                    }
+                }
             } else {
                 const response = await calendar.events.insert({
                     calendarId: user.googleCalendarId,
@@ -558,39 +571,86 @@ const syncAllCalendarEvents = async (req, res) => {
             }
         }
 
-        const results = await Promise.all(
-            events.map(async (event) => {
-                try {
-                    const googleEventId = await syncWithGoogleCalendar(userId, event, 'create');
+        const calendar = google.calendar({
+            version: 'v3',
+            auth: new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET,
+                process.env.GOOGLE_REDIRECT_URI
+            )
+        });
 
-                    if (googleEventId) {
+        calendar.options = {
+            auth: {
+                setCredentials: function(tokens) {
+                    this.credentials = tokens;
+                },
+                credentials: {
+                    access_token: user.googleAccessToken,
+                    refresh_token: user.googleRefreshToken,
+                    expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+                }
+            }
+        };
+
+        const results = [];
+        const batchSize = 5;
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        const syncEventWithRetry = async (event, retryCount = 0, maxRetries = 3, baseDelay = 1000) => {
+            try {
+                const operation = event.googleEventId ? 'update' : 'create';
+                const googleEventId = await syncWithGoogleCalendar(userId, event, operation);
+
+                if (googleEventId) {
+                    if (googleEventId !== event.googleEventId) {
                         await prisma.calendarEvent.update({
                             where: { id: event.id },
                             data: { googleEventId }
                         });
-
-                        return {
-                            eventId: event.id,
-                            success: true,
-                            googleEventId
-                        };
-                    } else {
-                        return {
-                            eventId: event.id,
-                            success: false,
-                            error: 'Failed to sync with Google Calendar'
-                        };
                     }
-                } catch (error) {
-                    console.error(`Error syncing event ${event.id}:`, error);
+
+                    return {
+                        eventId: event.id,
+                        success: true,
+                        googleEventId,
+                        operation
+                    };
+                } else {
                     return {
                         eventId: event.id,
                         success: false,
-                        error: error.message
+                        error: 'Failed to sync with Google Calendar'
                     };
                 }
-            })
-        );
+            } catch (error) {
+                if (error.message.includes('Rate Limit Exceeded') && retryCount < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, retryCount);
+                    await sleep(delay);
+                    return syncEventWithRetry(event, retryCount + 1, maxRetries, baseDelay);
+                }
+
+                return {
+                    eventId: event.id,
+                    success: false,
+                    error: error.message
+                };
+            }
+        };
+        for (let i = 0; i < events.length; i += batchSize) {
+            const batch = events.slice(i, i + batchSize);
+
+            for (const event of batch) {
+                const result = await syncEventWithRetry(event);
+                results.push(result);
+                await sleep(300);
+            }
+
+            if (i + batchSize < events.length) {
+                await sleep(2000);
+            }
+        }
 
         const successCount = results.filter(r => r.success).length;
         const failureCount = results.filter(r => !r.success).length;
