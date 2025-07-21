@@ -70,6 +70,41 @@ const auth = async (req, res) => {
     });
     res.redirect(authUrl);
 };
+const checkCalendarExists = async (calendarId) => {
+    try {
+        try {
+            await oauth2Client.getAccessToken();
+        } catch (tokenError) {
+            throw new Error('Authentication error: ' + tokenError.message);
+        }
+
+        if (!calendarId || calendarId === 'undefined' || calendarId === 'null') {
+            return false;
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+        try {
+            await calendar.calendars.get({
+                calendarId: calendarId
+            });
+            return true;
+        } catch (calendarError) {
+            if (calendarError.response && calendarError.response.status === 404) {
+                return false;
+            }
+
+            if (calendarError.response && calendarError.response.status === 403) {
+                return false;
+            }
+
+            throw calendarError;
+        }
+    } catch (error) {
+        throw error;
+    }
+};
+
 const setupZunoCalendar = async (userId) => {
     try {
         await setupOAuthClient(userId);
@@ -80,13 +115,9 @@ const setupZunoCalendar = async (userId) => {
         });
 
         if (user.googleCalendarId) {
-            try {
-                await calendar.calendars.get({
-                    calendarId: user.googleCalendarId
-                });
+            const calendarExists = await checkCalendarExists(user.googleCalendarId);
+            if (calendarExists) {
                 return user.googleCalendarId;
-            } catch (error) {
-                console.error('Calendar not found, creating a new one:', error.message);
             }
         }
 
@@ -204,34 +235,55 @@ const syncCalendarEvents = async (req, res) => {
                 });
             }
 
+            try {
+                const calendarExists = await checkCalendarExists(user.googleCalendarId);
+
+                if (!calendarExists) {
+                    const newCalendarId = await setupZunoCalendar(userId);
+
+                    await prisma.user.update({
+                        where: { id: userId },
+                        data: { googleCalendarId: newCalendarId }
+                    });
+
+                    user.googleCalendarId = newCalendarId;
+                }
+            } catch (setupError) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Failed to verify or create Zuno calendar. Please reconnect your Google account.',
+                    error: setupError.message
+                });
+            }
+
             const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-            const events = await prisma.event.findMany({
-            where: {
-                userId: userId,
-                OR: [
-                    { googleEventId: null },
-                    {
-                        googleEventId: { not: null },
-                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-                    }
-                ]
-            }
-        });
+            const events = await prisma.calendarEvent.findMany({
+                where: {
+                    userId: userId,
+                    OR: [
+                        { googleEventId: null },
+                        {
+                            googleEventId: { not: null },
+                            updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                        }
+                    ]
+                }
+            });
 
             const tasks = await prisma.task.findMany({
-            where: {
-                userId: userId,
-                addToCalendar: true,
-                OR: [
-                    { googleEventId: null },
-                    {
-                        googleEventId: { not: null },
-                        updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-                    }
-                ]
-            }
-        });
+                where: {
+                    userId: userId,
+                    requiresStudyBlock: true,
+                    OR: [
+                        { googleEventId: null },
+                        {
+                            googleEventId: { not: null },
+                            updatedAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                        }
+                    ]
+                }
+            });
 
             const lectures = await prisma.lecture.findMany({
             where: {
@@ -258,69 +310,127 @@ const syncCalendarEvents = async (req, res) => {
         };
 
             for (const event of events) {
-            try {
-                if (event.googleEventId) {
-                    await calendar.events.update({
-                        calendarId: user.googleCalendarId,
-                        eventId: event.googleEventId,
-                        requestBody: {
-                            summary: event.title,
-                            description: event.description || '',
-                            start: {
-                                dateTime: event.startTime.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            end: {
-                                dateTime: event.endTime.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            colorId: '3',
-                            source: {
-                                title: 'Zuno',
-                                url: `${process.env.CLIENT_URL}/calendar`
-                            }
-                        }
-                    });
-                    syncResults.eventsUpdated++;
-                } else {
-                    const googleEvent = await calendar.events.insert({
-                        calendarId: user.googleCalendarId,
-                        requestBody: {
-                            summary: event.title,
-                            description: event.description || '',
-                            start: {
-                                dateTime: event.startTime.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            end: {
-                                dateTime: event.endTime.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            colorId: '3',
-                            source: {
-                                title: 'Zuno',
-                                url: `${process.env.CLIENT_URL}/calendar`
-                            }
-                        }
-                    });
+                try {
+                    const eventSummary = event.title || `Event for ${event.task?.title || 'Unknown'}`;
+                    const eventDescription = event.description || '';
+                    const startTime = event.start_time.toISOString();
+                    const endTime = event.end_time.toISOString();
 
-                    await prisma.event.update({
-                        where: { id: event.id },
-                        data: { googleEventId: googleEvent.data.id }
-                    });
-                    syncResults.eventsCreated++;
+                    if (event.googleEventId) {
+                        try {
+                            await calendar.events.update({
+                                calendarId: user.googleCalendarId,
+                                eventId: event.googleEventId,
+                                requestBody: {
+                                    summary: eventSummary,
+                                    description: eventDescription,
+                                    start: {
+                                        dateTime: startTime,
+                                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                    },
+                                    end: {
+                                        dateTime: endTime,
+                                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                    },
+                                    colorId: '3',
+                                    source: {
+                                        title: 'Zuno',
+                                        url: `${process.env.CLIENT_URL}/calendar`
+                                    }
+                                }
+                            });
+                            syncResults.eventsUpdated++;
+                        } catch (updateError) {
+                            if (updateError.code === 404 || (updateError.response && updateError.response.status === 404)) {
+                                event.googleEventId = null;
+                            } else {
+                                throw updateError;
+                            }
+                        }
+                    }
+
+                    if (!event.googleEventId) {
+                        const timeMin = new Date(event.start_time);
+                        timeMin.setHours(0, 0, 0, 0);
+
+                        const timeMax = new Date(event.start_time);
+                        timeMax.setHours(23, 59, 59, 999);
+
+                        const existingEvents = await calendar.events.list({
+                            calendarId: user.googleCalendarId,
+                            timeMin: timeMin.toISOString(),
+                            timeMax: timeMax.toISOString(),
+                            q: eventSummary
+                        });
+
+                        let googleEventId;
+
+                        if (existingEvents.data.items && existingEvents.data.items.length > 0) {
+                            const existingEvent = existingEvents.data.items[0];
+                            await calendar.events.update({
+                                calendarId: user.googleCalendarId,
+                                eventId: existingEvent.id,
+                                requestBody: {
+                                    summary: eventSummary,
+                                    description: eventDescription,
+                                    start: {
+                                        dateTime: startTime,
+                                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                    },
+                                    end: {
+                                        dateTime: endTime,
+                                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                    },
+                                    colorId: '3',
+                                    source: {
+                                        title: 'Zuno',
+                                        url: `${process.env.CLIENT_URL}/calendar`
+                                    }
+                                }
+                            });
+                            googleEventId = existingEvent.id;
+                            syncResults.eventsUpdated++;
+                        } else {
+                            const googleEvent = await calendar.events.insert({
+                                calendarId: user.googleCalendarId,
+                                requestBody: {
+                                    summary: eventSummary,
+                                    description: eventDescription,
+                                    start: {
+                                        dateTime: startTime,
+                                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                    },
+                                    end: {
+                                        dateTime: endTime,
+                                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                    },
+                                    colorId: '3',
+                                    source: {
+                                        title: 'Zuno',
+                                        url: `${process.env.CLIENT_URL}/calendar`
+                                    }
+                                }
+                            });
+                            googleEventId = googleEvent.data.id;
+                            syncResults.eventsCreated++;
+                        }
+
+                        await prisma.calendarEvent.update({
+                            where: { id: event.id },
+                            data: { googleEventId: googleEventId }
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error syncing event ${event.id}:`, error);
+                    syncResults.errors.push(`Failed to sync event "${event.title}": ${error.message}`);
                 }
-            } catch (error) {
-                console.error(`Error syncing event ${event.id}:`, error);
-                syncResults.errors.push(`Failed to sync event "${event.title}": ${error.message}`);
             }
-        }
 
             for (const task of tasks) {
             try {
-                const eventSummary = `[Task] ${task.title}`;
+                const eventSummary = task.title;
                 const eventDescription = task.description || '';
-                const eventDate = task.dueDate.toISOString().split('T')[0];
+                const eventDate = task.deadline ? task.deadline.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
                 if (task.googleEventId) {
                     await calendar.events.update({
@@ -344,30 +454,68 @@ const syncCalendarEvents = async (req, res) => {
                     });
                     syncResults.tasksUpdated++;
                 } else {
-                    const googleEvent = await calendar.events.insert({
+                    const dateMin = eventDate;
+                    const dateMax = eventDate;
+
+                    const existingEvents = await calendar.events.list({
                         calendarId: user.googleCalendarId,
-                        requestBody: {
-                            summary: eventSummary,
-                            description: eventDescription,
-                            start: {
-                                date: eventDate,
-                            },
-                            end: {
-                                date: eventDate,
-                            },
-                            colorId: '10',
-                            source: {
-                                title: 'Zuno',
-                                url: `${process.env.CLIENT_URL}/tasks`
-                            }
-                        }
+                        timeMin: `${dateMin}T00:00:00Z`,
+                        timeMax: `${dateMax}T23:59:59Z`,
+                        q: eventSummary
                     });
+
+                    let googleEventId;
+
+                    if (existingEvents.data.items && existingEvents.data.items.length > 0) {
+                        const existingEvent = existingEvents.data.items[0];
+                        await calendar.events.update({
+                            calendarId: user.googleCalendarId,
+                            eventId: existingEvent.id,
+                            requestBody: {
+                                summary: eventSummary,
+                                description: eventDescription,
+                                start: {
+                                    date: eventDate,
+                                },
+                                end: {
+                                    date: eventDate,
+                                },
+                                colorId: '10',
+                                source: {
+                                    title: 'Zuno',
+                                    url: `${process.env.CLIENT_URL}/tasks`
+                                }
+                            }
+                        });
+                        googleEventId = existingEvent.id;
+                        syncResults.tasksUpdated++;
+                    } else {
+                        const googleEvent = await calendar.events.insert({
+                            calendarId: user.googleCalendarId,
+                            requestBody: {
+                                summary: eventSummary,
+                                description: eventDescription,
+                                start: {
+                                    date: eventDate,
+                                },
+                                end: {
+                                    date: eventDate,
+                                },
+                                colorId: '10',
+                                source: {
+                                    title: 'Zuno',
+                                    url: `${process.env.CLIENT_URL}/tasks`
+                                }
+                            }
+                        });
+                        googleEventId = googleEvent.data.id;
+                        syncResults.tasksCreated++;
+                    }
 
                     await prisma.task.update({
                         where: { id: task.id },
-                        data: { googleEventId: googleEvent.data.id }
+                        data: { googleEventId: googleEventId }
                     });
-                    syncResults.tasksCreated++;
                 }
             } catch (error) {
                 console.error(`Error syncing task ${task.id}:`, error);
@@ -375,78 +523,18 @@ const syncCalendarEvents = async (req, res) => {
             }
         }
 
-            for (const lecture of lectures) {
+            const { syncLecturesToGoogleCalendarBatch } = require('../utils/googleCalendarBatchUtils');
+
             try {
-                const eventSummary = `[Lecture] ${lecture.title}`;
-                const eventDescription = lecture.description || '';
-                const location = lecture.location || '';
-
-                if (lecture.googleEventId) {
-                    await calendar.events.update({
-                        calendarId: user.googleCalendarId,
-                        eventId: lecture.googleEventId,
-                        requestBody: {
-                            summary: eventSummary,
-                            description: eventDescription,
-                            location: location,
-                            start: {
-                                dateTime: lecture.start_time.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            end: {
-                                dateTime: lecture.end_time.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            colorId: '5',
-                            source: {
-                                title: 'Zuno',
-                                url: `${process.env.CLIENT_URL}/calendar`
-                            }
-                        }
-                    });
-                    syncResults.lecturesUpdated++;
-                } else {
-                    const googleEvent = await calendar.events.insert({
-                        calendarId: user.googleCalendarId,
-                        requestBody: {
-                            summary: eventSummary,
-                            description: eventDescription,
-                            location: location,
-                            start: {
-                                dateTime: lecture.start_time.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            end: {
-                                dateTime: lecture.end_time.toISOString(),
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                            colorId: '5',
-                            source: {
-                                title: 'Zuno',
-                                url: `${process.env.CLIENT_URL}/calendar`
-                            }
-                        }
-                    });
-
-                    await prisma.lecture.update({
-                        where: { id: lecture.id },
-                        data: { googleEventId: googleEvent.data.id }
-                    });
-                    syncResults.lecturesCreated++;
-                }
+                const batchResults = await syncLecturesToGoogleCalendarBatch(userId, lectures, oauth2Client);
+                syncResults.lecturesCreated += batchResults.created;
+                syncResults.lecturesUpdated += batchResults.updated;
+                syncResults.errors = [...syncResults.errors, ...batchResults.errors];
             } catch (error) {
-                console.error(`Error syncing lecture ${lecture.id}:`, error);
-                syncResults.errors.push(`Failed to sync lecture "${lecture.title}": ${error.message}`);
+                syncResults.errors.push(`Failed to sync lectures in batch: ${error.message}`);
             }
-        }
 
-            const deletedEvents = await prisma.event.findMany({
-            where: {
-                userId: userId,
-                googleEventId: { not: null },
-                deleted: true
-            }
-        });
+            const deletedEvents = [];
 
             for (const event of deletedEvents) {
             try {
@@ -455,7 +543,7 @@ const syncCalendarEvents = async (req, res) => {
                     eventId: event.googleEventId
                 });
 
-                await prisma.event.update({
+                await prisma.calendarEvent.update({
                     where: { id: event.id },
                     data: { googleEventId: null }
                 });
@@ -471,11 +559,20 @@ const syncCalendarEvents = async (req, res) => {
                 data: { lastGoogleSync: new Date() }
             });
 
-            res.status(200).json({
-                success: true,
-                message: 'Calendar sync completed',
-                results: syncResults
-            });
+            if (syncResults.errors.length > 0) {
+                res.status(207).json({
+                    success: true,
+                    message: 'Calendar sync completed with some errors',
+                    results: syncResults,
+                    errors: syncResults.errors
+                });
+            } else {
+                res.status(200).json({
+                    success: true,
+                    message: 'Calendar sync completed successfully',
+                    results: syncResults
+                });
+            }
         } catch (error) {
             if (error.message === 'Google account not connected') {
                 return res.status(400).json({
@@ -504,99 +601,13 @@ const syncCalendarEvents = async (req, res) => {
     }
 };
 
+const { syncSingleLectureWithRetry } = require('../utils/googleCalendarBatchUtils');
+
 const syncLectureToGoogleCalendar = async (userId, lectureId) => {
     try {
         await setupOAuthClient(userId);
-
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                googleCalendarId: true
-            }
-        });
-
-        if (!user.googleCalendarId) {
-            throw new Error('Zuno calendar not set up');
-        }
-
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-        const lecture = await prisma.lecture.findUnique({
-            where: { id: lectureId },
-            include: {
-                course: {
-                    select: {
-                        course_name: true
-                    }
-                }
-            }
-        });
-
-        if (!lecture) {
-            throw new Error(`Lecture with ID ${lectureId} not found`);
-        }
-
-        const eventSummary = `[Lecture] ${lecture.title}`;
-        const eventDescription = lecture.description || '';
-        const location = lecture.location || '';
-
-        if (lecture.googleEventId) {
-            await calendar.events.update({
-                calendarId: user.googleCalendarId,
-                eventId: lecture.googleEventId,
-                requestBody: {
-                    summary: eventSummary,
-                    description: eventDescription,
-                    location: location,
-                    start: {
-                        dateTime: lecture.start_time.toISOString(),
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                    },
-                    end: {
-                        dateTime: lecture.end_time.toISOString(),
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                    },
-                    colorId: '5',
-                    source: {
-                        title: 'Zuno',
-                        url: `${process.env.CLIENT_URL}/calendar`
-                    }
-                }
-            });
-
-            return lecture.googleEventId;
-        } else {
-            const googleEvent = await calendar.events.insert({
-                calendarId: user.googleCalendarId,
-                requestBody: {
-                    summary: eventSummary,
-                    description: eventDescription,
-                    location: location,
-                    start: {
-                        dateTime: lecture.start_time.toISOString(),
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                    },
-                    end: {
-                        dateTime: lecture.end_time.toISOString(),
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                    },
-                    colorId: '5',
-                    source: {
-                        title: 'Zuno',
-                        url: `${process.env.CLIENT_URL}/calendar`
-                    }
-                }
-            });
-
-            await prisma.lecture.update({
-                where: { id: lectureId },
-                data: { googleEventId: googleEvent.data.id }
-            });
-
-            return googleEvent.data.id;
-        }
+        return await syncSingleLectureWithRetry(userId, lectureId, oauth2Client);
     } catch (error) {
-        console.error(`Error syncing lecture ${lectureId} to Google Calendar:`, error);
         throw error;
     }
 };
