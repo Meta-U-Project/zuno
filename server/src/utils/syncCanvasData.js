@@ -68,6 +68,8 @@ async function syncCanvasData(user) {
                 }
             }
 
+            const canvasUrl = `https://${user.canvasDomain}/courses/${course.id}`;
+
             await prisma.course.upsert({
                 where: { id: course.id.toString() },
                 update: {
@@ -77,6 +79,7 @@ async function syncCanvasData(user) {
                     term: course.term || 'N/A',
                     current_score: currentScore,
                     current_grade: currentGrade,
+                    canvas_url: canvasUrl,
                 },
                 create: {
                     id: course.id.toString(),
@@ -87,6 +90,7 @@ async function syncCanvasData(user) {
                     term: course.term || 'N/A',
                     current_score: currentScore,
                     current_grade: currentGrade,
+                    canvas_url: canvasUrl,
                 }
             });
         }

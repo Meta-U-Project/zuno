@@ -95,6 +95,7 @@ model Course {
   term            String
   current_score   Float?
   current_grade   String?
+  canvas_url      String?
   tasks           Task[]
   studyGroups     StudyGroup[]
   lectures        Lecture[]

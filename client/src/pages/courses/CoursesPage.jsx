@@ -22,6 +22,11 @@ const CoursesPage = () => {
     const [showCourseDetailModal, setShowCourseDetailModal] = useState(false);
     const [courseTasks, setCourseTasks] = useState([]);
     const [courseTasksLoading, setCourseTasksLoading] = useState(false);
+    const [studyBlocks, setStudyBlocks] = useState([]);
+    const [studyBlocksLoading, setStudyBlocksLoading] = useState(false);
+    const [announcements, setAnnouncements] = useState([]);
+    const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState("tasks");
 
     const fetchCourses = async () => {
         try {
@@ -53,18 +58,60 @@ const CoursesPage = () => {
 
         try {
             setCourseTasksLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/assignments`, {
+            const tasksResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/assignments`, {
                 withCredentials: true
             });
 
-            if (response.status === 200) {
-                const courseTasks = response.data.assignments.filter(task => task.courseId === course.id);
+            if (tasksResponse.status === 200) {
+                const courseTasks = tasksResponse.data.assignments.filter(task => task.courseId === course.id);
                 setCourseTasks(courseTasks);
             }
         } catch (err) {
             console.error("Error fetching course tasks:", err);
         } finally {
             setCourseTasksLoading(false);
+        }
+
+        try {
+            setStudyBlocksLoading(true);
+            const eventsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/calendarevents`, {
+                withCredentials: true
+            });
+
+            if (eventsResponse.status === 200) {
+                const courseStudyBlocks = eventsResponse.data
+                    .filter(event =>
+                        event.type === 'task_block' &&
+                        event.courseId === course.id &&
+                        new Date(event.date) > new Date()
+                    )
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                setStudyBlocks(courseStudyBlocks);
+            }
+        } catch (err) {
+            console.error("Error fetching study blocks:", err);
+        } finally {
+            setStudyBlocksLoading(false);
+        }
+
+        try {
+            setAnnouncementsLoading(true);
+            const announcementsResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/canvas/announcements`, {
+                withCredentials: true
+            });
+
+            if (announcementsResponse.status === 200) {
+                const courseAnnouncements = announcementsResponse.data
+                    .filter(announcement => announcement.courseId === course.id)
+                    .sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt)); // Sort newest first
+
+                setAnnouncements(courseAnnouncements);
+            }
+        } catch (err) {
+            console.error("Error fetching announcements:", err);
+        } finally {
+            setAnnouncementsLoading(false);
         }
     };
 
@@ -397,7 +444,41 @@ const CoursesPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="course-tasks-section">
+                                <div className="course-tabs">
+                                    <button 
+                                        className={`tab-button ${activeTab === "tasks" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("tasks")}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 11L12 14L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <path d="M21 12V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                        Tasks
+                                    </button>
+                                    <button 
+                                        className={`tab-button ${activeTab === "studyBlocks" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("studyBlocks")}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                                            <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                        </svg>
+                                        Study Blocks
+                                    </button>
+                                    <button 
+                                        className={`tab-button ${activeTab === "announcements" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("announcements")}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                        Announcements
+                                    </button>
+                                </div>
+
+                                {activeTab === "tasks" && (
+                                <div className="course-tab-content">
                                     <h3>Course Tasks</h3>
                                     {courseTasksLoading ? (
                                         <div className="loading-indicator">
@@ -454,6 +535,102 @@ const CoursesPage = () => {
                                         </div>
                                     )}
                                 </div>
+                                )}
+
+                                {activeTab === "studyBlocks" && (
+                                <div className="course-tab-content">
+                                    <h3>Upcoming Study Blocks</h3>
+                                    {studyBlocksLoading ? (
+                                        <div className="loading-indicator">
+                                            <div className="loading-spinner small"></div>
+                                            <span>Loading study blocks...</span>
+                                        </div>
+                                    ) : studyBlocks.length > 0 ? (
+                                        <div className="course-study-blocks">
+                                            {studyBlocks.map((block, index) => (
+                                                <div key={index} className="study-block-item">
+                                                    <div className="study-block-icon">
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <circle cx="12" cy="12" r="10" stroke="#48bb78" strokeWidth="2" />
+                                                            <path d="M12 6v6l4 2" stroke="#48bb78" strokeWidth="2" strokeLinecap="round" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="study-block-info">
+                                                        <h4>{block.title}</h4>
+                                                        <p>
+                                                            {new Date(block.date).toLocaleDateString('en-US', {
+                                                                weekday: 'short',
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="no-tasks-message">
+                                            <p>No upcoming study blocks for this course.</p>
+                                        </div>
+                                    )}
+                                </div>
+                                )}
+
+                                {activeTab === "announcements" && (
+                                <div className="course-tab-content">
+                                    <h3>Course Announcements</h3>
+                                    {announcementsLoading ? (
+                                        <div className="loading-indicator">
+                                            <div className="loading-spinner small"></div>
+                                            <span>Loading announcements...</span>
+                                        </div>
+                                    ) : announcements.length > 0 ? (
+                                        <div className="course-announcements">
+                                            {announcements.map((announcement, index) => (
+                                                <div key={index} className="announcement-item">
+                                                    <div className="announcement-header">
+                                                        <h4>{announcement.title}</h4>
+                                                        <span className="announcement-date">
+                                                            {new Date(announcement.postedAt).toLocaleDateString('en-US', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    <div 
+                                                        className="announcement-content"
+                                                        dangerouslySetInnerHTML={{ __html: announcement.message }}
+                                                    />
+                                                    {announcement.url && (
+                                                        <div className="announcement-actions">
+                                                            <a 
+                                                                href={announcement.url} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="announcement-link"
+                                                            >
+                                                                View in Canvas
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                    <path d="M15 3h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                    <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                </svg>
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="no-tasks-message">
+                                            <p>No announcements found for this course.</p>
+                                        </div>
+                                    )}
+                                </div>
+                                )}
 
                                 <div className="course-actions">
                                     <button className="course-action-button primary">
@@ -472,6 +649,21 @@ const CoursesPage = () => {
                                         </svg>
                                         View Tasks
                                     </button>
+                                    {selectedCourse.canvas_url && (
+                                        <a
+                                            href={selectedCourse.canvas_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="course-action-button secondary"
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M15 3h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                            Open in Canvas
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         </div>
