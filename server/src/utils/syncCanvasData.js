@@ -411,6 +411,11 @@ async function syncCanvasData(user) {
                 engagement_score: 0
             }
         });
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastCanvasSync: now }
+        });
     } catch (err) {
         console.error('Canvas sync error:', err.message);
     }

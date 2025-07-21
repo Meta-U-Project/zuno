@@ -43,6 +43,7 @@ const getIntegrations = async (req, res) => {
             select: {
                 googleAccessToken: true,
                 canvasAccessToken: true,
+                lastCanvasSync: true
             }
         });
 
@@ -50,10 +51,32 @@ const getIntegrations = async (req, res) => {
 
         res.json({
             googleConnected: !!user.googleAccessToken,
-            canvasConnected: !!user.canvasAccessToken
+            canvasConnected: !!user.canvasAccessToken,
+            lastSync: user.lastCanvasSync
         });
     } catch (error) {
         console.error('Error fetching integrations:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+const getLastSyncTime = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                lastCanvasSync: true
+            }
+        });
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json({
+            lastSync: user.lastCanvasSync
+        });
+    } catch (error) {
+        console.error('Error fetching last sync time:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
@@ -682,5 +705,6 @@ module.exports = {
     updateCalendarEvent,
     deleteCalendarEvent,
     syncAllCalendarEvents,
-    syncWithGoogleCalendar
+    syncWithGoogleCalendar,
+    getLastSyncTime
 };

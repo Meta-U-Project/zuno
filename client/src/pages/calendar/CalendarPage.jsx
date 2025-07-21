@@ -5,6 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import Sidebar from '../../components/dashboard_components/Sidebar';
+import WelcomeHeader from '../../components/dashboard_components/WelcomeHeader';
 import './CalendarPage.css';
 
 const CalendarPage = () => {
@@ -35,7 +36,11 @@ const CalendarPage = () => {
         class_session: { bg: '#1c79de', border: '#1c79de' },
     };
 
-    const getEventColor = (type, source) => {
+    const getEventColor = (type, source, isCompleted) => {
+        if (isCompleted) {
+            return { bg: '#4CAF50', border: '#388E3C' };
+        }
+
         if (type === 'task_block' && source === 'user') {
             return eventColors['user_task_block'];
         }
@@ -73,7 +78,8 @@ const CalendarPage = () => {
                 const transformedEvents = eventsResponse.data.map(event => {
                     const eventType = event.type || 'other';
                     const source = event.source || 'canvas';
-                    const colors = getEventColor(eventType, source);
+                    const isCompleted = event.completed || false;
+                    const colors = getEventColor(eventType, source, isCompleted);
 
                     return {
                         id: event.id,
@@ -86,7 +92,8 @@ const CalendarPage = () => {
                             courseId: event.courseId,
                             courseName: event.courseName,
                             type: eventType,
-                            source: source
+                            source: source,
+                            completed: isCompleted
                         }
                     };
                 });
@@ -350,12 +357,11 @@ const CalendarPage = () => {
         <div className="dashboard-container">
             <Sidebar />
             <div className="dashboard-main">
-                <div className="dashboard-welcome">
-                    <div className="welcome-content">
-                        <h1>Calendar</h1>
-                        <p>Manage your schedule and upcoming events.</p>
-                    </div>
-                </div>
+                <WelcomeHeader
+                    title="Calendar"
+                    subtitle="Manage your schedule and upcoming events."
+                    onSettingsClick={() => {}}
+                />
 
                 <div className="calendar-page">
                     <div className="calendar-header">
@@ -454,12 +460,21 @@ const CalendarPage = () => {
                                 eventDidMount={(info) => {
                                     const event = info.event;
                                     const isPending = event.extendedProps.isPending;
+                                    const isCompleted = event.extendedProps.completed;
                                     const courseName = event.extendedProps.courseName || 'No course';
                                     const eventType = event.extendedProps.type || 'Other';
 
                                     if (isPending) {
                                         info.el.style.opacity = '0.7';
                                         info.el.style.border = '2px dashed #000';
+                                    }
+
+                                    if (isCompleted) {
+                                        info.el.style.opacity = '0.6';
+                                        const titleEl = info.el.querySelector('.fc-event-title');
+                                        if (titleEl) {
+                                            titleEl.style.textDecoration = 'line-through';
+                                        }
                                     }
 
                                     const tooltip = document.createElement('div');
@@ -469,6 +484,7 @@ const CalendarPage = () => {
                                         <div class="tooltip-header" style="background: ${event.backgroundColor}">
                                             <div class="tooltip-type">${eventType.toUpperCase()}</div>
                                             <div class="tooltip-title">${event.title}</div>
+                                            ${event.extendedProps.completed ? '<div class="tooltip-completed">✓ Completed</div>' : ''}
                                         </div>
                                         <div class="tooltip-body">
                                     `;

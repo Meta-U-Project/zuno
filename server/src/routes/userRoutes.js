@@ -11,7 +11,8 @@ const {
     createCalendarEvent,
     updateCalendarEvent,
     deleteCalendarEvent,
-    syncAllCalendarEvents
+    syncAllCalendarEvents,
+    getLastSyncTime
 } = require('../controllers/userController');
 const { verifyToken } = require('../middleware/authMiddleware');
 const {
@@ -24,6 +25,7 @@ const {
 router.get('/profile', verifyToken, getUserProfile);
 router.post('/profile', verifyToken, updateUserProfile);
 router.get('/integrations', verifyToken, getIntegrations);
+router.get('/last-sync', verifyToken, getLastSyncTime);
 router.get('/study-preferences', verifyToken, getStudyPreferences);
 router.post('/study-preferences', verifyToken, saveStudyPreferences);
 router.get('/tasks', verifyToken, getUserTasks);

@@ -114,9 +114,9 @@ const AnalyticsCard = () => {
                     </div>
 
                     <div className="metrics-grid">
-                        <div className="metric-item">
+                        <div className="ana-metric-item">
                             <div className="metric-header">
-                                <span className="metric-label">Canvas Tasks</span>
+                                <span className="ana-metric-label">Canvas Tasks</span>
                                 <span className="metric-percentage">{analyticsData.canvasCompletion}%</span>
                             </div>
                             <div className="metric-bar">
@@ -130,9 +130,9 @@ const AnalyticsCard = () => {
                             </span>
                         </div>
 
-                        <div className="metric-item">
+                        <div className="ana-metric-item">
                             <div className="metric-header">
-                                <span className="metric-label">Zuno Tasks</span>
+                                <span className="ana-metric-label">Zuno Tasks</span>
                                 <span className="metric-percentage">{analyticsData.zunoCompletion}%</span>
                             </div>
                             <div className="metric-bar">
@@ -144,9 +144,9 @@ const AnalyticsCard = () => {
                             <span className="metric-detail">Study sessions and notes</span>
                         </div>
 
-                        <div className="metric-item">
+                        <div className="ana-metric-item">
                             <div className="metric-header">
-                                <span className="metric-label">Weekly Progress</span>
+                                <span className="ana-metric-label">Weekly Progress</span>
                                 <span className="metric-percentage">{analyticsData.weeklyProgress}%</span>
                             </div>
                             <div className="metric-bar">
