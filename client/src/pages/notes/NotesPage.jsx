@@ -5,6 +5,13 @@ import './NotesPage.css';
 
 const SimpleRichTextEditor = forwardRef(({ value, onChange }, ref) => {
   const editorRef = useRef(null);
+  const [activeFormats, setActiveFormats] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    orderedList: false,
+    unorderedList: false
+  });
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -12,14 +19,67 @@ const SimpleRichTextEditor = forwardRef(({ value, onChange }, ref) => {
     }
   }, [value]);
 
+  const checkActiveFormats = () => {
+    if (!document.queryCommandEnabled) return;
+
+    setActiveFormats({
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      orderedList: document.queryCommandState('insertOrderedList'),
+      unorderedList: document.queryCommandState('insertUnorderedList')
+    });
+  };
+
+  const handleFormat = (command, e) => {
+    e.preventDefault();
+    document.execCommand(command);
+
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+
+    checkActiveFormats();
+  };
+
   return (
     <div className="simple-editor-container">
       <div className="editor-toolbar">
-        <button onClick={() => document.execCommand('bold')} type="button">Bold</button>
-        <button onClick={() => document.execCommand('italic')} type="button">Italic</button>
-        <button onClick={() => document.execCommand('underline')} type="button">Underline</button>
-        <button onClick={() => document.execCommand('insertOrderedList')} type="button">Numbered List</button>
-        <button onClick={() => document.execCommand('insertUnorderedList')} type="button">Bullet List</button>
+        <button
+          onClick={(e) => handleFormat('bold', e)}
+          type="button"
+          className={activeFormats.bold ? 'active' : ''}
+        >
+          Bold
+        </button>
+        <button
+          onClick={(e) => handleFormat('italic', e)}
+          type="button"
+          className={activeFormats.italic ? 'active' : ''}
+        >
+          Italic
+        </button>
+        <button
+          onClick={(e) => handleFormat('underline', e)}
+          type="button"
+          className={activeFormats.underline ? 'active' : ''}
+        >
+          Underline
+        </button>
+        <button
+          onClick={(e) => handleFormat('insertOrderedList', e)}
+          type="button"
+          className={activeFormats.orderedList ? 'active' : ''}
+        >
+          Numbered List
+        </button>
+        <button
+          onClick={(e) => handleFormat('insertUnorderedList', e)}
+          type="button"
+          className={activeFormats.unorderedList ? 'active' : ''}
+        >
+          Bullet List
+        </button>
       </div>
       <div
         ref={(node) => {
@@ -30,6 +90,9 @@ const SimpleRichTextEditor = forwardRef(({ value, onChange }, ref) => {
         className="simple-editor"
         contentEditable
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        onMouseUp={checkActiveFormats}
+        onKeyUp={checkActiveFormats}
+        onSelect={checkActiveFormats}
         suppressContentEditableWarning={true}
         style={{
           minHeight: '300px',
@@ -58,6 +121,8 @@ const NotesPage = () => {
   const [courses, setCourses] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
   const [allTags, setAllTags] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const titleUpdateTimeout = useRef(null);
   const contentUpdateTimeout = useRef(null);
 
@@ -339,6 +404,34 @@ const NotesPage = () => {
     console.log('Settings clicked - Coming soon!');
   };
 
+  const handleDeleteNote = async () => {
+    if (!selectedNote) return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/notes/${selectedNote.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const updatedNotes = notes.filter(note => note.id !== selectedNote.id);
+        setNotes(updatedNotes);
+
+        if (updatedNotes.length > 0) {
+          setSelectedNote(updatedNotes[0]);
+        } else {
+          setSelectedNote(null);
+        }
+
+        setShowDeleteConfirm(false);
+      } else {
+        console.error('Failed to delete note');
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <Sidebar />
@@ -355,79 +448,109 @@ const NotesPage = () => {
         {/* Left Panel (Sidebar) */}
         <div className="notes-sidebar">
           <div className="notes-sidebar-header">
-            <div className="search-container">
-              <input
-                type="text"
-                placeholder="Search notes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-            </div>
+            <div className="notes-sidebar-actions">
+              <div className="search-icon-container">
+                <button
+                  className="icon-btn search-icon"
+                  onClick={() => document.getElementById('search-input').focus()}
+                  title="Search notes"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <input
+                  id="search-input"
+                  type="text"
+                  placeholder="Search notes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+              </div>
 
-            <button className="create-note-btn" onClick={handleCreateNewNote}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              New Note
-            </button>
+              <div className="header-icons">
+                <button
+                  className="icon-btn filter-icon"
+                  onClick={() => setShowFilters(!showFilters)}
+                  title="Filter notes"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
+                <button
+                  className="icon-btn create-note-icon"
+                  onClick={handleCreateNewNote}
+                  title="Create new note"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="filter-options">
-            <div className="filter-section">
-              <div className="filter-header">
-                <span>Tags</span>
+          {showFilters && (
+            <div className="filter-dropdown">
+              <div className="filter-section">
+                <div className="filter-header">
+                  <span>Tags</span>
+                </div>
+                <div className="tags-list">
+                  {allTags.map(tag => (
+                    <span
+                      key={tag}
+                      className={`tag-filter ${selectedTags.includes(tag) ? 'selected' : ''}`}
+                      onClick={() => handleTagFilter(tag)}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="tags-list">
-                {allTags.map(tag => (
-                  <span
-                    key={tag}
-                    className={`tag-filter ${selectedTags.includes(tag) ? 'selected' : ''}`}
-                    onClick={() => handleTagFilter(tag)}
+
+              <div className="filter-section">
+                <div className="filter-header">
+                  <span>Course</span>
+                </div>
+                <select
+                  className="course-filter"
+                  value={selectedCourse || ""}
+                  onChange={(e) => setSelectedCourse(e.target.value || null)}
+                >
+                  <option value="">All Courses</option>
+                  {courses.map(course => (
+                    <option key={course.id} value={course.id}>{course.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-section">
+                <div className="filter-header">
+                  <span>Sort</span>
+                </div>
+                <div className="sort-options">
+                  <button
+                    className={`sort-btn ${sortBy === 'recent' ? 'active' : ''}`}
+                    onClick={() => setSortBy('recent')}
                   >
-                    {tag}
-                  </span>
-                ))}
+                    Recent
+                  </button>
+                  <button
+                    className={`sort-btn ${sortBy === 'alphabetical' ? 'active' : ''}`}
+                    onClick={() => setSortBy('alphabetical')}
+                  >
+                    A-Z
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="filter-section">
-              <div className="filter-header">
-                <span>Course</span>
-              </div>
-              <select
-                className="course-filter"
-                value={selectedCourse || ""}
-                onChange={(e) => setSelectedCourse(e.target.value || null)}
-              >
-                <option value="">All Courses</option>
-                {courses.map(course => (
-                  <option key={course.id} value={course.id}>{course.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-section">
-              <div className="filter-header">
-                <span>Sort</span>
-              </div>
-              <div className="sort-options">
-                <button
-                  className={`sort-btn ${sortBy === 'recent' ? 'active' : ''}`}
-                  onClick={() => setSortBy('recent')}
-                >
-                  Recent
-                </button>
-                <button
-                  className={`sort-btn ${sortBy === 'alphabetical' ? 'active' : ''}`}
-                  onClick={() => setSortBy('alphabetical')}
-                >
-                  A-Z
-                </button>
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="notes-list">
             {/* Today's Notes */}
@@ -559,16 +682,29 @@ const NotesPage = () => {
                 />
 
                 <div className="editor-meta">
-                  <div className="course-selector">
-                    <select
-                      value={selectedNote.courseId || "none"}
-                      onChange={handleCourseChange}
+                  <div className="editor-actions">
+                    <div className="course-selector">
+                      <select
+                        value={selectedNote.courseId || "none"}
+                        onChange={handleCourseChange}
+                      >
+                        <option value="none">No Course</option>
+                        {courses.map(course => (
+                          <option key={course.id} value={course.id}>{course.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      className="delete-note-btn"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      title="Delete note"
                     >
-                      <option value="none">No Course</option>
-                      {courses.map(course => (
-                        <option key={course.id} value={course.id}>{course.name}</option>
-                      ))}
-                    </select>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
                   </div>
 
                   {lastSaved && (
@@ -629,6 +765,26 @@ const NotesPage = () => {
         </div>
       </div>
     </div>
+
+    {/* Delete Confirmation Modal */}
+    {showDeleteConfirm && (
+      <div className="modal-overlay">
+        <div className="modal-content delete-confirm-modal">
+          <div className="modal-header">
+            <h3>Delete Note</h3>
+            <button className="close-button" onClick={() => setShowDeleteConfirm(false)}>×</button>
+          </div>
+          <div className="modal-body">
+            <p>Are you sure you want to delete "{selectedNote?.title}"?</p>
+            <p className="warning-text">This action cannot be undone.</p>
+          </div>
+          <div className="modal-footer">
+            <button className="cancel-btn" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+            <button className="delete-btn" onClick={handleDeleteNote}>Delete</button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 };

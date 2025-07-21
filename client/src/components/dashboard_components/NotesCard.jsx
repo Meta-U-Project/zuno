@@ -105,7 +105,7 @@ const NotesCard = () => {
                 {notes.length > 0 ? (
                     <div className="notes-list">
                         {notes.map((note) => (
-                            <div key={note.id} className="note-item">
+                            <div key={note.id} className="dash-note-item">
                                 <div className="note-main">
                                     <div className="note-header">
                                         <h4 className="note-title">{note.title}</h4>
