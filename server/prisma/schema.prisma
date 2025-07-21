@@ -32,6 +32,7 @@ model User {
 
   canvasDomain    String?
   canvasAccessToken String?
+  canvasUserId    String?
 
   preferredStudyTime PreferredStudyTime[]
 

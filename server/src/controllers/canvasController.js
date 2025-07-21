@@ -1,16 +1,28 @@
 const { PrismaClient } = require('../generated/prisma');
 const { syncCanvasData } = require('../utils/syncCanvasData');
+const getCanvasApiClient = require('../utils/canvasApi');
 const prisma = new PrismaClient();
 
 const saveCanvasCredentials = async (req, res) => {
     const { domain, accessToken } = req.body;
 
     try {
+        const canvas = getCanvasApiClient(accessToken, domain);
+        let canvasUserId = null;
+
+        try {
+            const profileResponse = await canvas.get('/users/self');
+            canvasUserId = profileResponse.data.id?.toString();
+        } catch (profileErr) {
+            console.error('Error fetching Canvas user profile:', profileErr.message);
+        }
+
         const updatedUser = await prisma.user.update({
             where: { id: req.user.id },
             data: {
                 canvasDomain: domain,
-                canvasAccessToken: accessToken
+                canvasAccessToken: accessToken,
+                canvasUserId: canvasUserId
             }
         });
 
