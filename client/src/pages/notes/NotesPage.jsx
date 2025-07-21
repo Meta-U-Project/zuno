@@ -123,6 +123,7 @@ const NotesPage = () => {
   const [allTags, setAllTags] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const titleUpdateTimeout = useRef(null);
   const contentUpdateTimeout = useRef(null);
 
@@ -567,7 +568,7 @@ const NotesPage = () => {
                       <h4 className="note-title">{note.title}</h4>
                       <p className="note-preview">{getPreview(note.content)}</p>
                       <div className="note-meta">
-                        <span className="note-time">{formatTimeAgo(note.updatedAt)}</span>
+                        <span className="note-time">{formatTimeAgo(new Date(note.updatedAt))}</span>
                         {note.courseName && (
                           <span className="note-course">{note.courseName}</span>
                         )}
@@ -602,7 +603,7 @@ const NotesPage = () => {
                       <h4 className="note-title">{note.title}</h4>
                       <p className="note-preview">{getPreview(note.content)}</p>
                       <div className="note-meta">
-                        <span className="note-time">{formatTimeAgo(note.updatedAt)}</span>
+                        <span className="note-time">{formatTimeAgo(new Date(note.updatedAt))}</span>
                         {note.courseName && (
                           <span className="note-course">{note.courseName}</span>
                         )}
@@ -637,7 +638,7 @@ const NotesPage = () => {
                       <h4 className="note-title">{note.title}</h4>
                       <p className="note-preview">{getPreview(note.content)}</p>
                       <div className="note-meta">
-                        <span className="note-time">{formatTimeAgo(note.updatedAt)}</span>
+                        <span className="note-time">{formatTimeAgo(new Date(note.updatedAt))}</span>
                         {note.courseName && (
                           <span className="note-course">{note.courseName}</span>
                         )}
@@ -669,9 +670,30 @@ const NotesPage = () => {
         </div>
 
         {/* Right Panel (Note Editor) */}
-        <div className="note-editor">
+        <div className={`note-editor ${isFullScreen ? 'fullscreen' : ''}`}>
           {selectedNote ? (
             <>
+              <button
+                className="fullscreen-toggle-btn"
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                title={isFullScreen ? "Exit full screen" : "Full screen"}
+              >
+                {isFullScreen ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 3V5H4V9H2V3H8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 3H22V9H20V5H16V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M22 16V21H16V19H20V16H22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 21H2V15H4V19H8V21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 3H21V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 3H3V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M15 21H21V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 21H3V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
               <div className="editor-header">
                 <input
                   type="text"
@@ -695,16 +717,18 @@ const NotesPage = () => {
                       </select>
                     </div>
 
-                    <button
-                      className="delete-note-btn"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      title="Delete note"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
+                    <div className="editor-buttons">
+                      <button
+                        className="delete-note-btn"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        title="Delete note"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
                   {lastSaved && (

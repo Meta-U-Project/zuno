@@ -338,6 +338,21 @@
   border: 1px solid transparent;
   border-radius: 8px;
   overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.note-editor.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  border-radius: 0;
+  background: white;
 }
 
 .editor-header {
@@ -375,6 +390,36 @@
   border: 1px solid #e2e8f0;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.editor-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.fullscreen-toggle-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e2e8f0;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #4a5568;
+  transition: all 0.2s;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.fullscreen-toggle-btn:hover {
+  background-color: #f7fafc;
+  color: #7735e2;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .delete-note-btn {
