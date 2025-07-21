@@ -99,7 +99,7 @@ const NotesCard = () => {
         <div className="dashboard-card notes-card">
             <div className="card-header">
                 <h3>Recent Notes</h3>
-                <a href="#" className="view-all-link">view all</a>
+                <a href="/notes" className="view-all-link">view all</a>
             </div>
             <div className="card-content">
                 {notes.length > 0 ? (
