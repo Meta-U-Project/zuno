@@ -284,6 +284,15 @@
     color: #333;
 }
 
+.detail-value.grade {
+    font-weight: 600;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding: 2px 0;
+}
+
 .course-footer {
     display: flex;
     justify-content: flex-end;
@@ -362,6 +371,18 @@
     font-size: 15px;
     color: #333;
     font-weight: 500;
+}
+
+.info-value.grade-badge {
+    display: inline-block;
+    font-weight: 600;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(119, 53, 226, 0.3);
 }
 
 .course-tasks-section {

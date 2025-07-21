@@ -93,6 +93,8 @@ model Course {
   course_code     String
   instructor_name String
   term            String
+  current_score   Float?
+  current_grade   String?
   tasks           Task[]
   studyGroups     StudyGroup[]
   lectures        Lecture[]

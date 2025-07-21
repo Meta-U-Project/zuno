@@ -118,6 +118,16 @@ const CoursesPage = () => {
                     return a.instructor_name.localeCompare(b.instructor_name);
                 case "instructor-desc":
                     return b.instructor_name.localeCompare(a.instructor_name);
+                case "grade-asc":
+                    if (a.current_score === null && b.current_score === null) return 0;
+                    if (a.current_score === null) return 1;
+                    if (b.current_score === null) return -1;
+                    return a.current_score - b.current_score;
+                case "grade-desc":
+                    if (a.current_score === null && b.current_score === null) return 0;
+                    if (a.current_score === null) return 1;
+                    if (b.current_score === null) return -1;
+                    return b.current_score - a.current_score;
                 default:
                     return 0;
             }
@@ -233,6 +243,8 @@ const CoursesPage = () => {
                                         <option value="code-desc">Course Code (Z-A)</option>
                                         <option value="instructor-asc">Instructor (A-Z)</option>
                                         <option value="instructor-desc">Instructor (Z-A)</option>
+                                        <option value="grade-asc">Grade (Low to High)</option>
+                                        <option value="grade-desc">Grade (High to Low)</option>
                                     </select>
                                 </div>
                                 <button
@@ -316,6 +328,18 @@ const CoursesPage = () => {
                                                 <span className="detail-label">Term:</span>
                                                 <span className="detail-value">{course.term}</span>
                                             </div>
+                                            {course.current_grade && (
+                                                <div className="course-detail">
+                                                    <span className="detail-label">Grade:</span>
+                                                    <span className="detail-value grade">{course.current_grade}</span>
+                                                </div>
+                                            )}
+                                            {course.current_score !== null && (
+                                                <div className="course-detail">
+                                                    <span className="detail-label">Score:</span>
+                                                    <span className="detail-value">{course.current_score}%</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="course-footer">
                                             <button className="view-course-button">
@@ -358,6 +382,18 @@ const CoursesPage = () => {
                                             <span className="info-label">Created</span>
                                             <span className="info-value">{formatDate(selectedCourse.createdAt)}</span>
                                         </div>
+                                        {selectedCourse.current_grade && (
+                                            <div className="course-info-item">
+                                                <span className="info-label">Current Grade</span>
+                                                <span className="info-value grade-badge">{selectedCourse.current_grade}</span>
+                                            </div>
+                                        )}
+                                        {selectedCourse.current_score !== null && (
+                                            <div className="course-info-item">
+                                                <span className="info-label">Current Score</span>
+                                                <span className="info-value">{selectedCourse.current_score}%</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
