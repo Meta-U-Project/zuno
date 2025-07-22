@@ -335,8 +335,8 @@
 
 /* Course Detail Modal Styles */
 .course-detail-modal {
-    max-width: 900px;
-    width: 90%;
+    max-width: 1200px !important;
+    width: 95% !important;
 }
 
 .course-detail-content {

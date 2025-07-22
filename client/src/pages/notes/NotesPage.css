@@ -21,8 +21,7 @@
 }
 
 .notes-sidebar-header {
-  padding: 16px;
-  border-bottom: 1px solid #edf2f7;
+  padding: 16px 16px 0 16px;
 }
 
 .notes-sidebar-actions {
@@ -60,8 +59,7 @@
 .search-input {
   width: 100%;
   padding: 8px 8px 8px 36px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border: none;
   font-size: 14px;
   transition: all 0.2s;
 }
@@ -356,8 +354,7 @@
 }
 
 .editor-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 24px 0 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -371,6 +368,7 @@
   border: none;
   outline: none;
   color: #2d3748;
+  font-family: 'Poppins', sans-serif;
 }
 
 .editor-meta {
@@ -458,48 +456,72 @@
   flex-direction: column;
 }
 
+.simple-editor-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* border: 1px solid #e2e8f0; */
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: white;
+  position: relative;
+}
+
 .simple-editor {
   flex: 1;
   font-size: 16px;
   overflow-y: auto;
   min-height: 300px;
+  padding: 12px;
+  outline: none;
+  direction: ltr;
+  text-align: left;
 }
-
 .editor-toolbar {
   display: flex;
   gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 12px;
+  padding: 10px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  justify-content: center;
 }
 
 .editor-toolbar button {
-  padding: 6px 12px;
-  background-color: #f7fafc;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  background-color: white;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .editor-toolbar button:hover {
   background-color: #edf2f7;
   color: #7735e2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .editor-toolbar button.active {
   background: linear-gradient(to right, rgba(119, 53, 226, 0.1), rgba(10, 99, 172, 0.1));
   border-color: rgba(119, 53, 226, 0.3);
   color: #7735e2;
-  font-weight: 600;
+}
+
+.editor-toolbar button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .editor-footer {
   padding: 16px 24px;
-  border-top: 1px solid #e2e8f0;
 }
 
 .tags-input-container {

@@ -44,67 +44,78 @@ const SimpleRichTextEditor = forwardRef(({ value, onChange }, ref) => {
 
   return (
     <div className="simple-editor-container">
-      <div className="editor-toolbar">
-        <button
-          onClick={(e) => handleFormat('bold', e)}
-          type="button"
-          className={activeFormats.bold ? 'active' : ''}
-        >
-          Bold
-        </button>
-        <button
-          onClick={(e) => handleFormat('italic', e)}
-          type="button"
-          className={activeFormats.italic ? 'active' : ''}
-        >
-          Italic
-        </button>
-        <button
-          onClick={(e) => handleFormat('underline', e)}
-          type="button"
-          className={activeFormats.underline ? 'active' : ''}
-        >
-          Underline
-        </button>
-        <button
-          onClick={(e) => handleFormat('insertOrderedList', e)}
-          type="button"
-          className={activeFormats.orderedList ? 'active' : ''}
-        >
-          Numbered List
-        </button>
-        <button
-          onClick={(e) => handleFormat('insertUnorderedList', e)}
-          type="button"
-          className={activeFormats.unorderedList ? 'active' : ''}
-        >
-          Bullet List
-        </button>
-      </div>
       <div
-        ref={(node) => {
-          editorRef.current = node;
-          if (typeof ref === 'function') ref(node);
-          else if (ref) ref.current = node;
-        }}
-        className="simple-editor"
-        contentEditable
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        onMouseUp={checkActiveFormats}
-        onKeyUp={checkActiveFormats}
-        onSelect={checkActiveFormats}
-        suppressContentEditableWarning={true}
-        style={{
-          minHeight: '300px',
-          border: '1px solid #e2e8f0',
-          borderRadius: '4px',
-          padding: '12px',
-          outline: 'none',
-          overflowY: 'auto',
-          direction: 'ltr',
-          textAlign: 'left'
-        }}
-      />
+        className="simple-editor-wrapper"
+      >
+        <div className="editor-toolbar">
+          <button
+            onClick={(e) => handleFormat('bold', e)}
+            type="button"
+            className={activeFormats.bold ? 'active' : ''}
+            title="Bold"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 12H14C16.2091 12 18 10.2091 18 8C18 5.79086 16.2091 4 14 4H6V12ZM6 12H15C17.2091 12 19 13.7909 19 16C19 18.2091 17.2091 20 15 20H6V12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={(e) => handleFormat('italic', e)}
+            type="button"
+            className={activeFormats.italic ? 'active' : ''}
+            title="Italic"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 4H10M14 20H5M15 4L9 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={(e) => handleFormat('underline', e)}
+            type="button"
+            className={activeFormats.underline ? 'active' : ''}
+            title="Underline"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 3V10C6 13.3137 8.68629 16 12 16C15.3137 16 18 13.3137 18 10V3M4 21H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={(e) => handleFormat('insertOrderedList', e)}
+            type="button"
+            className={activeFormats.orderedList ? 'active' : ''}
+            title="Numbered List"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 6H21M10 12H21M10 18H21M4 6H4.01M4 12H4.01M4 18H4.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 7L5 6V10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 16L6 18L4 20" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={(e) => handleFormat('insertUnorderedList', e)}
+            type="button"
+            className={activeFormats.unorderedList ? 'active' : ''}
+            title="Bullet List"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 6H21M9 12H21M9 18H21M5 6C5 6.55228 4.55228 7 4 7C3.44772 7 3 6.55228 3 6C3 5.44772 3.44772 5 4 5C4.55228 5 5 5.44772 5 6ZM5 12C5 12.5523 4.55228 13 4 13C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11C4.55228 11 5 11.4477 5 12ZM5 18C5 18.5523 4.55228 19 4 19C3.44772 19 3 18.5523 3 18C3 17.4477 3.44772 17 4 17C4.55228 17 5 17.4477 5 18Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div
+          ref={(node) => {
+            editorRef.current = node;
+            if (typeof ref === 'function') ref(node);
+            else if (ref) ref.current = node;
+          }}
+          className="simple-editor"
+          contentEditable
+          onInput={(e) => onChange(e.currentTarget.innerHTML)}
+          onMouseUp={checkActiveFormats}
+          onKeyUp={checkActiveFormats}
+          onSelect={checkActiveFormats}
+          suppressContentEditableWarning={true}
+        />
+      </div>
     </div>
   );
 });
@@ -397,7 +408,9 @@ const NotesPage = () => {
   };
 
   const getPreview = (content) => {
-    const plainText = content.replace(/<[^>]+>/g, '');
+    const tempElement = document.createElement('div');
+    tempElement.innerHTML = content;
+    const plainText = tempElement.textContent || tempElement.innerText || '';
     return plainText.length > 60 ? plainText.substring(0, 60) + '...' : plainText;
   };
 
