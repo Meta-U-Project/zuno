@@ -23,6 +23,7 @@ async function calculateZunoScoreForUser(userId) {
         trustFactor * calculatedScore + (1 - trustFactor) * fallbackScore
     );
 
+    await storeTaskCompletionHistory(userId, canvasStats, zunoStats);
 
     await prisma.zunoScore.create({
         data: {
@@ -42,14 +43,13 @@ async function getCanvasCompletion(userId) {
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay());
-
     const endOfWeek = new Date(today);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
 
     const tasksThisWeek = await prisma.task.findMany({
         where: {
             userId,
-            source: 'CANVAS',
+            source: 'canvas',
             deadline: {
                 gte: startOfWeek,
                 lt: endOfWeek,
@@ -73,17 +73,12 @@ async function getCanvasCompletion(userId) {
         return total === 0 ? 100 : (completed / total) * 100;
     });
 
-    const momentumScore = calculateEMA(completionRates, 0.4);
-
+    let momentumScore = calculateEMA(completionRates, 0.4);
     if (!momentumScore || isNaN(momentumScore)) {
-        momentumScore = percent; // fallback if no history
+        momentumScore = percent;
     }
 
-
-    return {
-        percent,
-        momentumScore,
-    };
+    return { percent, momentumScore };
 }
 
 async function getZunoTaskCompletion(userId) {
@@ -109,16 +104,31 @@ async function getZunoTaskCompletion(userId) {
             userId,
             type: 'TASK_BLOCK',
             location: 'Study Session',
-            startTime: {
+            start_time: {
                 gte: startOfWeek,
                 lt: endOfWeek,
             },
         },
     });
 
-    const total = notes.length + studyBlocks.length;
-    const completedStudyBlocks = studyBlocks.filter((b) => b.completed).length;
-    const completed = notes.length + completedStudyBlocks;
+    const zunoTasks = await prisma.task.findMany({
+        where: {
+            userId,
+            source: {
+                equals: 'user',
+                mode: 'insensitive',
+            },
+            deadline: {
+                gte: startOfWeek,
+                lt: endOfWeek,
+            },
+        },
+    });
+
+    const completedZunoTasks = zunoTasks.filter((task) => task.completed).length;
+
+    const total = notes.length + studyBlocks.length + zunoTasks.length;
+    const completed = notes.length + studyBlocks.filter(b => b.completed).length + completedZunoTasks;
 
     const percent = total === 0 ? 100 : Math.round((completed / total) * 100);
 
@@ -135,13 +145,13 @@ async function getZunoTaskCompletion(userId) {
     });
 
     let momentumScore = calculateEMA(completionRates, 0.4);
-
     if (!momentumScore || isNaN(momentumScore)) {
         momentumScore = percent;
     }
+
     return {
         percent,
-        momentumScore: percent, // fallback for now, similar to canvas
+        momentumScore,
     };
 }
 
@@ -157,7 +167,7 @@ async function getStudyAdherence(userId) {
             userId,
             type: 'TASK_BLOCK',
             location: 'Study Session',
-            startTime: {
+            start_time: {
                 gte: startOfWeek,
                 lt: endOfWeek,
             },
@@ -166,40 +176,43 @@ async function getStudyAdherence(userId) {
 
     const total = studyBlocks.length;
     const completed = studyBlocks.filter((b) => b.completed).length;
-
     const adherenceScore = total === 0 ? 100 : Math.round((completed / total) * 100);
 
-    return {
-        scheduled: total,
-        completed,
-        adherenceScore,
-    };
+    return { scheduled: total, completed, adherenceScore };
 }
 
 async function getTaskDensityStress(userId) {
     const today = new Date();
-
     const threeDaysFromNow = new Date(today);
     threeDaysFromNow.setDate(today.getDate() + 3);
-
     const sevenDaysFromNow = new Date(today);
     sevenDaysFromNow.setDate(today.getDate() + 7);
 
     const tasksNext3Days = await prisma.task.findMany({
         where: {
-        userId,
-        source: 'CANVAS',
-        deadline: {
-            gte: today,
-            lt: threeDaysFromNow,
+            userId,
+            deadline: {
+                gte: today,
+                lt: threeDaysFromNow,
+            },
         },
+    });
+
+    const sessionsNext3Days = await prisma.calendarEvent.findMany({
+        where: {
+            userId,
+            type: 'TASK_BLOCK',
+            location: 'Study Session',
+            start_time: {
+                gte: today,
+                lt: threeDaysFromNow,
+            },
         },
     });
 
     const tasksNext7Days = await prisma.task.findMany({
         where: {
             userId,
-            source: 'CANVAS',
             deadline: {
                 gte: today,
                 lt: sevenDaysFromNow,
@@ -207,18 +220,25 @@ async function getTaskDensityStress(userId) {
         },
     });
 
-    const tasks3 = tasksNext3Days.length;
-    const tasks7 = tasksNext7Days.length;
+    const sessionsNext7Days = await prisma.calendarEvent.findMany({
+        where: {
+            userId,
+            type: 'TASK_BLOCK',
+            location: 'Study Session',
+            start_time: {
+                gte: today,
+                lt: sevenDaysFromNow,
+            },
+        },
+    });
+
+    const tasks3 = tasksNext3Days.length + sessionsNext3Days.length;
+    const tasks7 = tasksNext7Days.length + sessionsNext7Days.length;
 
     const density = tasks7 === 0 ? 0 : tasks3 / tasks7;
     const stressScore = Math.round(100 - density * 100);
 
-    return {
-        stressScore,
-        density,
-        tasksNext3: tasks3,
-        tasksNext7: tasks7,
-    };
+    return { stressScore, density, tasksNext3: tasks3, tasksNext7: tasks7 };
 }
 
 async function getZunoScoreTrend(userId) {
@@ -229,10 +249,7 @@ async function getZunoScoreTrend(userId) {
     });
 
     if (history.length < 2) {
-        return {
-            stabilityScore: 100,
-            slope: 0,
-        };
+        return { stabilityScore: 100, slope: 0 };
     }
 
     const scores = history.map((entry) => entry.score);
@@ -251,10 +268,46 @@ async function getZunoScoreTrend(userId) {
         stabilityScore = 20;
     }
 
-    return {
-        stabilityScore,
-        slope,
-    };
+    return { stabilityScore, slope };
+}
+
+
+async function storeTaskCompletionHistory(userId) {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    const canvasTasks = await prisma.task.findMany({
+        where: {
+            userId,
+            source: 'canvas',
+            deadline: { gte: startOfWeek, lt: endOfWeek }
+        }
+    });
+
+    const zunoTasks = await prisma.task.findMany({
+        where: {
+            userId,
+            source: 'user',
+            deadline: { gte: startOfWeek, lt: endOfWeek }
+        }
+    });
+
+    const canvasCompleted = canvasTasks.filter(t => t.completed).length;
+    const zunoCompleted = zunoTasks.filter(t => t.completed).length;
+
+    await prisma.taskCompletionHistory.create({
+        data: {
+            userId,
+            date: today,
+            canvasTotal: canvasTasks.length,
+            canvasCompleted,
+            zunoTotal: zunoTasks.length,
+            zunoCompleted
+        }
+    });
 }
 
 
