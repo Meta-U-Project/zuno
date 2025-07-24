@@ -92,6 +92,43 @@ const deleteTask = async (req, res) => {
     }
 };
 
+const markCalendarEventAttended = async (req, res) => {
+    const { eventId } = req.params;
+    const { attended } = req.body;
+
+    try {
+        const calendarEvent = await prisma.calendarEvent.findUnique({
+            where: { id: eventId },
+            include: { task: true }
+        });
+
+        if (!calendarEvent) {
+            return res.status(404).json({ error: 'Calendar event not found' });
+        }
+
+        if (calendarEvent.userId !== req.user.id) {
+            return res.status(403).json({ error: 'Unauthorized to update this event' });
+        }
+
+        const updatedEvent = await prisma.calendarEvent.update({
+            where: { id: eventId },
+            data: {
+                completed: attended,
+                completedAt: attended ? new Date() : null
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: attended ? 'Event marked as attended' : 'Event marked as not attended',
+            event: updatedEvent
+        });
+    } catch (err) {
+        console.error('Error updating calendar event attendance:', err);
+        res.status(500).json({ error: 'Something went wrong updating event attendance' });
+    }
+};
+
 
 const checkTasksNeedingScheduling = async (req, res) => {
     try {
@@ -254,6 +291,7 @@ module.exports = {
     createTask,
     updateTask,
     deleteTask,
+    markCalendarEventAttended,
     scheduleStudySessions,
     checkTasksNeedingScheduling
 };
