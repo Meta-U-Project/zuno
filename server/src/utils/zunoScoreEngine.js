@@ -9,11 +9,20 @@ async function calculateZunoScoreForUser(userId) {
     const taskDensity = await getTaskDensityStress(userId);
     const trendScore = await getZunoScoreTrend(userId);
 
-    const zunoScore =
+    const calculatedScore =
         0.4 * canvasStats.momentumScore +
         0.3 * trendScore.stabilityScore +
         0.2 * studyStats.adherenceScore +
         0.1 * taskDensity.stressScore;
+
+    const historyDepth = await prisma.zunoScore.count({ where: { userId } });
+    const trustFactor = Math.min(historyDepth / 7, 1);
+    const fallbackScore = canvasStats.percent;
+
+    const zunoScore = Math.round(
+        trustFactor * calculatedScore + (1 - trustFactor) * fallbackScore
+    );
+
 
     await prisma.zunoScore.create({
         data: {
