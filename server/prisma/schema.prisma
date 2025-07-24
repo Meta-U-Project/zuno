@@ -28,9 +28,12 @@ model User {
   googleAccessToken String?
   googleRefreshToken String?
   googleTokenExpiry DateTime?
+  googleCalendarId String?
 
   canvasDomain    String?
   canvasAccessToken String?
+  canvasUserId    String?
+  lastCanvasSync  DateTime?
 
   preferredStudyTime PreferredStudyTime[]
 
@@ -132,6 +135,7 @@ model CalendarEvent {
   location        String
   createdBy       User      @relation("CreatedEvents", fields: [createdById], references: [id])
   createdById     String
+  googleEventId   String?   // ID of the event in Google Calendar
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -229,6 +233,7 @@ model Lecture {
   start_time  DateTime
   end_time    DateTime
   ical_uid    String?  @unique
+  googleEventId String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

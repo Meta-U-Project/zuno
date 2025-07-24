@@ -15,6 +15,24 @@ async function syncCanvasData(user) {
     const userId = user.id;
 
     try {
+        // Fetch and store Canvas user ID if not already set
+        if (!user.canvasUserId) {
+            try {
+                const profileResponse = await canvas.get('/users/self');
+                const canvasUserId = profileResponse.data.id?.toString();
+
+                if (canvasUserId) {
+                    await prisma.user.update({
+                        where: { id: userId },
+                        data: { canvasUserId }
+                    });
+                    console.log(`Updated Canvas user ID for user ${userId}: ${canvasUserId}`);
+                    user.canvasUserId = canvasUserId; // Update the local user object
+                }
+            } catch (profileErr) {
+                console.error('Error fetching Canvas user profile:', profileErr.message);
+            }
+        }
         // Sync courses
         const coursesRes = await canvas.get('/courses?per_page=100');
         const courseData = coursesRes.data;
@@ -71,6 +89,17 @@ async function syncCanvasData(user) {
                 const priorityScore = calculatePriorityScore(assignment)
                 const studyTime = estimateStudyTime(assignment)
 
+                let isSubmitted = false;
+                if (user.canvasUserId) {
+                    try {
+                        const submissionRes = await canvas.get(`/courses/${course.id}/assignments/${assignment.id}/submissions/${user.canvasUserId}`);
+                        const submission = submissionRes.data;
+                        isSubmitted = submission.workflow_state === 'submitted' || submission.workflow_state === 'graded';
+                    } catch (err) {
+                        console.warn(`Could not fetch submission status for assignment ${assignment.id}: ${err.message}`);
+                    }
+                }
+
                 const canvasNote = "\n\n<p><strong>Note:</strong> This task was imported from Canvas. Please view Canvas for more details and submission options.</p>";
                 const assignmentDescription = assignment.description || '';
                 const descriptionWithNote = assignmentDescription + canvasNote;
@@ -82,6 +111,7 @@ async function syncCanvasData(user) {
                         description: descriptionWithNote,
                         deadline: new Date(assignment.due_at),
                         source: "canvas",
+                        completed: isSubmitted,
                     },
                     create: {
                         id: assignment.id.toString(),
@@ -95,6 +125,7 @@ async function syncCanvasData(user) {
                         requiresStudyBlock: true,
                         deadline: new Date(assignment.due_at),
                         source: "canvas",
+                        completed: isSubmitted,
                     }
 
                 });
@@ -148,6 +179,16 @@ async function syncCanvasData(user) {
                         const studyTime = estimateStudyTime(discussion)
 
                         const discussionTask = discussion.assignment;
+                        let isSubmitted = false;
+                        if (user.canvasUserId && discussionTask) {
+                            try {
+                                const submissionRes = await canvas.get(`/courses/${course.id}/assignments/${discussionTask.id}/submissions/${user.canvasUserId}`);
+                                const submission = submissionRes.data;
+                                isSubmitted = submission.workflow_state === 'submitted' || submission.workflow_state === 'graded';
+                            } catch (err) {
+                                console.warn(`Could not fetch submission status for discussion ${discussion.id}: ${err.message}`);
+                            }
+                        }
 
                         const existingTask = await prisma.task.findFirst({
                             where: {
@@ -171,6 +212,7 @@ async function syncCanvasData(user) {
                                     description: messageWithNote,
                                     deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
                                     source: "canvas",
+                                    completed: isSubmitted
                                 }
                             });
                         } else {
@@ -191,6 +233,7 @@ async function syncCanvasData(user) {
                                     requiresStudyBlock: true,
                                     deadline: discussionTask.due_at ? new Date(discussionTask.due_at) : null,
                                     source: "canvas",
+                                    completed: isSubmitted
                                 }
                             });
                         }
@@ -238,20 +281,21 @@ async function syncCanvasData(user) {
                     update: {
                         title: announcement.title,
                         message: announcement.message,
-                        postedAt: new Date(announcement.posted_at),
+                        postedAt: announcement.posted_at ? new Date(announcement.posted_at) : new Date(),
                     },
                     create: {
                         id: announcement.id.toString(),
                         userId,
                         courseId: course.id.toString(),
+                        courseName: course.name || 'Unknown Course',
                         title: announcement.title,
                         message: announcement.message,
-                        courseName: course.name,
-                        postedAt: new Date(announcement.posted_at),
+                        postedAt: announcement.posted_at ? new Date(announcement.posted_at) : new Date(),
                     }
                 });
             }
         }
+        const lecturesToSync = [];
         for (const course of courseData) {
             try {
                 const icsUrl = course.calendar?.ics;
@@ -284,7 +328,7 @@ async function syncCanvasData(user) {
 
                     if (existingLecture) {
                         // Update existing lecture
-                        await prisma.lecture.update({
+                        const updatedLecture = await prisma.lecture.update({
                             where: { id: existingLecture.id },
                             data: {
                                 title: event.summary || `${course.name} Class Session`,
@@ -294,9 +338,13 @@ async function syncCanvasData(user) {
                                 end_time: endTime
                             }
                         });
+
+                        if (user.googleAccessToken && user.googleCalendarId) {
+                            lecturesToSync.push(updatedLecture);
+                        }
                     } else {
                         // Create new lecture
-                        await prisma.lecture.create({
+                        const newLecture = await prisma.lecture.create({
                             data: {
                                 userId: user.id,
                                 courseId: course.id.toString(),
@@ -308,14 +356,40 @@ async function syncCanvasData(user) {
                                 ical_uid: event.uid
                             }
                         });
+
+                        if (user.googleAccessToken && user.googleCalendarId) {
+                            lecturesToSync.push(newLecture);
+                        }
                     }
                 }
             } catch (err) {
                 console.error(`Error syncing ICS for course ${course.name}:`, err.message);
             }
         }
+        if (user.googleAccessToken && user.googleCalendarId && lecturesToSync.length > 0) {
+            try {
+                const googleController = require('../controllers/googleController');
 
+                await googleController.setupZunoCalendar(user.id);
 
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const lecture of lecturesToSync) {
+                    try {
+                        await googleController.syncLectureToGoogleCalendar(user.id, lecture.id);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error syncing lecture ${lecture.id} to Google Calendar:`, error);
+                        errorCount++;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+            } catch (syncError) {
+                console.error(`Error batch syncing lectures to Google Calendar:`, syncError);
+            }
+        }
         // Sync analytics
         const tasks = await prisma.task.findMany({
             where: { userId: user.id }
@@ -336,6 +410,11 @@ async function syncCanvasData(user) {
                 total_study_hours: 0,
                 engagement_score: 0
             }
+        });
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastCanvasSync: now }
         });
     } catch (err) {
         console.error('Canvas sync error:', err.message);

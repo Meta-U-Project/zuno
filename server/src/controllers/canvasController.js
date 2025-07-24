@@ -1,16 +1,28 @@
 const { PrismaClient } = require('../generated/prisma');
 const { syncCanvasData } = require('../utils/syncCanvasData');
+const getCanvasApiClient = require('../utils/canvasApi');
 const prisma = new PrismaClient();
 
 const saveCanvasCredentials = async (req, res) => {
     const { domain, accessToken } = req.body;
 
     try {
+        const canvas = getCanvasApiClient(accessToken, domain);
+        let canvasUserId = null;
+
+        try {
+            const profileResponse = await canvas.get('/users/self');
+            canvasUserId = profileResponse.data.id?.toString();
+        } catch (profileErr) {
+            console.error('Error fetching Canvas user profile:', profileErr.message);
+        }
+
         const updatedUser = await prisma.user.update({
             where: { id: req.user.id },
             data: {
                 canvasDomain: domain,
-                canvasAccessToken: accessToken
+                canvasAccessToken: accessToken,
+                canvasUserId: canvasUserId
             }
         });
 
@@ -96,7 +108,9 @@ const fetchCalendarEventsFromTasks = async (req, res) => {
                 type: taskType,
                 courseId: event.task.courseId,
                 courseName: event.task.course.course_name,
-                url: ''
+                url: '',
+                completed: event.task.completed || false,
+                source: event.task.source || 'canvas'
             };
         });
 
@@ -152,11 +166,37 @@ const fetchClassSessions = async (req, res) => {
     }
 };
 
+const syncCanvasDataManually = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user.canvasAccessToken || !user.canvasDomain) {
+            return res.status(400).json({ error: 'Canvas credentials not found. Please connect your Canvas account first.' });
+        }
+
+        await syncCanvasData(user);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { lastCanvasSync: new Date() }
+        });
+
+        res.status(200).json({ message: 'Canvas data synced successfully' });
+    } catch (err) {
+        console.error('Error syncing Canvas data:', err);
+        res.status(500).json({ error: 'Something went wrong syncing Canvas data' });
+    }
+};
+
 module.exports = {
     saveCanvasCredentials,
     fetchCourses,
     fetchCanvasTasks,
     fetchCalendarEventsFromTasks,
     fetchAnnouncements,
-    fetchClassSessions
+    fetchClassSessions,
+    syncCanvasDataManually
 };

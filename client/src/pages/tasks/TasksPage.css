@@ -361,6 +361,45 @@
     color: #7735e2;
 }
 
+.tasks-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.1), rgba(10, 99, 172, 0.1)) border-box;
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.tasks-metrics {
+    display: flex;
+    gap: 30px;
+}
+
+.metric-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    background: var(--main-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.metric-label {
+    font-size: 14px;
+    color: #666;
+    margin-top: 4px;
+}
+
 .tasks-legend {
     display: flex;
     align-items: center;

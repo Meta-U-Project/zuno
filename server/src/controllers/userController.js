@@ -1,5 +1,7 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
+const { google } = require('googleapis');
+const { setupZunoCalendar } = require('./googleController');
 
 const getUserProfile = async (req, res) => {
     try {
@@ -41,6 +43,7 @@ const getIntegrations = async (req, res) => {
             select: {
                 googleAccessToken: true,
                 canvasAccessToken: true,
+                lastCanvasSync: true
             }
         });
 
@@ -48,10 +51,32 @@ const getIntegrations = async (req, res) => {
 
         res.json({
             googleConnected: !!user.googleAccessToken,
-            canvasConnected: !!user.canvasAccessToken
+            canvasConnected: !!user.canvasAccessToken,
+            lastSync: user.lastCanvasSync
         });
     } catch (error) {
         console.error('Error fetching integrations:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+const getLastSyncTime = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                lastCanvasSync: true
+            }
+        });
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json({
+            lastSync: user.lastCanvasSync
+        });
+    } catch (error) {
+        console.error('Error fetching last sync time:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
@@ -239,11 +264,153 @@ const getCalendarEvents = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+const syncWithGoogleCalendar = async (userId, event, operation = 'create') => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                googleAccessToken: true,
+                googleRefreshToken: true,
+                googleTokenExpiry: true,
+                googleCalendarId: true
+            }
+        });
+
+        if (!user.googleAccessToken || !user.googleCalendarId) {
+            return null;
+        }
+
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+
+        oauth2Client.setCredentials({
+            access_token: user.googleAccessToken,
+            refresh_token: user.googleRefreshToken,
+            expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+        });
+
+        if (user.googleTokenExpiry && user.googleTokenExpiry < new Date()) {
+            try {
+                const { tokens } = await oauth2Client.refreshToken(user.googleRefreshToken);
+
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: {
+                        googleAccessToken: tokens.access_token,
+                        googleTokenExpiry: new Date(tokens.expiry_date)
+                    }
+                });
+
+                oauth2Client.setCredentials({
+                    access_token: tokens.access_token,
+                    refresh_token: user.googleRefreshToken,
+                    expiry_date: tokens.expiry_date
+                });
+            } catch (refreshError) {
+                console.error('Error refreshing Google token:', refreshError);
+                return null;
+            }
+        }
+
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+        const task = await prisma.task.findUnique({
+            where: { id: event.taskId },
+            select: { title: true, description: true }
+        });
+
+        const googleEvent = {
+            summary: `${event.type === 'TASK_BLOCK' ? 'Study Block: ' : ''}${task.title}`,
+            description: task.description || 'No description',
+            start: {
+                dateTime: new Date(event.start_time).toISOString(),
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            },
+            end: {
+                dateTime: new Date(event.end_time).toISOString(),
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            },
+            location: event.location || '',
+            colorId: event.type === 'TASK_BLOCK' ? '3' : '1',
+            extendedProperties: {
+                private: {
+                    zunoEventId: event.id,
+                    zunoTaskId: event.taskId,
+                    zunoEventType: event.type
+                }
+            }
+        };
+
+        let result = null;
+
+        if (operation === 'create') {
+            const response = await calendar.events.insert({
+                calendarId: user.googleCalendarId,
+                requestBody: googleEvent
+            });
+            result = response.data.id;
+        } else if (operation === 'update') {
+            const existingEvent = await prisma.calendarEvent.findUnique({
+                where: { id: event.id },
+                select: { googleEventId: true }
+            });
+
+            if (existingEvent && existingEvent.googleEventId) {
+                try {
+                    const response = await calendar.events.update({
+                        calendarId: user.googleCalendarId,
+                        eventId: existingEvent.googleEventId,
+                        requestBody: googleEvent
+                    });
+                    result = response.data.id;
+                } catch (updateError) {
+                    if (updateError.message.includes('Not Found') ||
+                        (updateError.response && updateError.response.status === 404)) {
+                        const response = await calendar.events.insert({
+                            calendarId: user.googleCalendarId,
+                            requestBody: googleEvent
+                        });
+                        result = response.data.id;
+                    } else {
+                        throw updateError;
+                    }
+                }
+            } else {
+                const response = await calendar.events.insert({
+                    calendarId: user.googleCalendarId,
+                    requestBody: googleEvent
+                });
+                result = response.data.id;
+            }
+        } else if (operation === 'delete') {
+            const existingEvent = await prisma.calendarEvent.findUnique({
+                where: { id: event.id },
+                select: { googleEventId: true }
+            });
+
+            if (existingEvent && existingEvent.googleEventId) {
+                await calendar.events.delete({
+                    calendarId: user.googleCalendarId,
+                    eventId: existingEvent.googleEventId
+                });
+                result = existingEvent.googleEventId;
+            }
+        }
+
+        return result;
+    } catch (error) {
+        console.error(`Error syncing with Google Calendar (${operation}):`, error);
+        return null;
+    }
+};
 
 const createCalendarEvent = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { taskId, start_time, end_time, type, is_group_event, location } = req.body;
+        const { taskId, start_time, end_time, type, is_group_event, location, syncWithGoogle } = req.body;
 
         const newEvent = await prisma.calendarEvent.create({
             data: {
@@ -254,9 +421,27 @@ const createCalendarEvent = async (req, res) => {
                 type: type || 'TASK_BLOCK',
                 is_group_event: is_group_event || false,
                 location: location || '',
-                createdById: userId
+                createdById: userId,
+                googleEventId: null
             }
         });
+
+        if (syncWithGoogle) {
+            try {
+                const googleEventId = await syncWithGoogleCalendar(userId, newEvent, 'create');
+
+                if (googleEventId) {
+                    await prisma.calendarEvent.update({
+                        where: { id: newEvent.id },
+                        data: { googleEventId }
+                    });
+
+                    newEvent.googleEventId = googleEventId;
+                }
+            } catch (syncError) {
+                console.error('Error syncing with Google Calendar:', syncError);
+            }
+        }
 
         res.status(201).json(newEvent);
     } catch (error) {
@@ -269,7 +454,7 @@ const updateCalendarEvent = async (req, res) => {
     try {
         const userId = req.user.id;
         const { eventId } = req.params;
-        const { start_time, end_time, type, is_group_event, location } = req.body;
+        const { start_time, end_time, type, is_group_event, location, syncWithGoogle } = req.body;
 
         const event = await prisma.calendarEvent.findFirst({
             where: {
@@ -293,6 +478,23 @@ const updateCalendarEvent = async (req, res) => {
             }
         });
 
+        if (syncWithGoogle) {
+            try {
+                const googleEventId = await syncWithGoogleCalendar(userId, updatedEvent, 'update');
+
+                if (googleEventId && googleEventId !== updatedEvent.googleEventId) {
+                    await prisma.calendarEvent.update({
+                        where: { id: eventId },
+                        data: { googleEventId }
+                    });
+
+                    updatedEvent.googleEventId = googleEventId;
+                }
+            } catch (syncError) {
+                console.error('Error syncing with Google Calendar:', syncError);
+            }
+        }
+
         res.json(updatedEvent);
     } catch (error) {
         console.error('Error updating calendar event:', error);
@@ -304,6 +506,7 @@ const deleteCalendarEvent = async (req, res) => {
     try {
         const userId = req.user.id;
         const { eventId } = req.params;
+        const { syncWithGoogle } = req.body;
 
         const event = await prisma.calendarEvent.findFirst({
             where: {
@@ -314,6 +517,14 @@ const deleteCalendarEvent = async (req, res) => {
 
         if (!event) {
             return res.status(404).json({ message: 'Calendar event not found' });
+        }
+
+        if (syncWithGoogle && event.googleEventId) {
+            try {
+                await syncWithGoogleCalendar(userId, event, 'delete');
+            } catch (syncError) {
+                console.error('Error syncing with Google Calendar:', syncError);
+            }
         }
 
         await prisma.calendarEvent.delete({
@@ -327,6 +538,161 @@ const deleteCalendarEvent = async (req, res) => {
     }
 };
 
+const syncAllCalendarEvents = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const events = await prisma.calendarEvent.findMany({
+            where: { userId }
+        });
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                googleAccessToken: true,
+                googleRefreshToken: true,
+                googleTokenExpiry: true,
+                googleCalendarId: true
+            }
+        });
+
+        if (!user.googleAccessToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Google account not connected. Please connect your Google account first.'
+            });
+        }
+
+        if (!user.googleCalendarId) {
+            try {
+                const tokens = {
+                    access_token: user.googleAccessToken,
+                    refresh_token: user.googleRefreshToken,
+                    expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+                };
+
+                await setupZunoCalendar(userId, tokens);
+
+                const updatedUser = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { googleCalendarId: true }
+                });
+
+                if (!updatedUser.googleCalendarId) {
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Failed to create Zuno calendar in Google Calendar.'
+                    });
+                }
+            } catch (error) {
+                console.error('Error setting up Zuno calendar:', error);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to set up Zuno calendar',
+                    error: error.message
+                });
+            }
+        }
+
+        const calendar = google.calendar({
+            version: 'v3',
+            auth: new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET,
+                process.env.GOOGLE_REDIRECT_URI
+            )
+        });
+
+        calendar.options = {
+            auth: {
+                setCredentials: function(tokens) {
+                    this.credentials = tokens;
+                },
+                credentials: {
+                    access_token: user.googleAccessToken,
+                    refresh_token: user.googleRefreshToken,
+                    expiry_date: user.googleTokenExpiry ? user.googleTokenExpiry.getTime() : undefined
+                }
+            }
+        };
+
+        const results = [];
+        const batchSize = 5;
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        const syncEventWithRetry = async (event, retryCount = 0, maxRetries = 3, baseDelay = 1000) => {
+            try {
+                const operation = event.googleEventId ? 'update' : 'create';
+                const googleEventId = await syncWithGoogleCalendar(userId, event, operation);
+
+                if (googleEventId) {
+                    if (googleEventId !== event.googleEventId) {
+                        await prisma.calendarEvent.update({
+                            where: { id: event.id },
+                            data: { googleEventId }
+                        });
+                    }
+
+                    return {
+                        eventId: event.id,
+                        success: true,
+                        googleEventId,
+                        operation
+                    };
+                } else {
+                    return {
+                        eventId: event.id,
+                        success: false,
+                        error: 'Failed to sync with Google Calendar'
+                    };
+                }
+            } catch (error) {
+                if (error.message.includes('Rate Limit Exceeded') && retryCount < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, retryCount);
+                    await sleep(delay);
+                    return syncEventWithRetry(event, retryCount + 1, maxRetries, baseDelay);
+                }
+
+                return {
+                    eventId: event.id,
+                    success: false,
+                    error: error.message
+                };
+            }
+        };
+        for (let i = 0; i < events.length; i += batchSize) {
+            const batch = events.slice(i, i + batchSize);
+
+            for (const event of batch) {
+                const result = await syncEventWithRetry(event);
+                results.push(result);
+                await sleep(300);
+            }
+
+            if (i + batchSize < events.length) {
+                await sleep(2000);
+            }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        const failureCount = results.filter(r => !r.success).length;
+
+        res.status(200).json({
+            success: true,
+            message: `Synced ${successCount} events with Google Calendar. ${failureCount} events failed to sync.`,
+            results
+        });
+    } catch (error) {
+        console.error('Error syncing all calendar events:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to sync calendar events with Google Calendar',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getIntegrations,
@@ -337,5 +703,8 @@ module.exports = {
     getCalendarEvents,
     createCalendarEvent,
     updateCalendarEvent,
-    deleteCalendarEvent
+    deleteCalendarEvent,
+    syncAllCalendarEvents,
+    syncWithGoogleCalendar,
+    getLastSyncTime
 };

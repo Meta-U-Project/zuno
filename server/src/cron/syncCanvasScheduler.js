@@ -4,7 +4,7 @@ const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 
 const syncCanvasScheduler = () => {
-    cron.schedule('0 * * * *', async () => {
+    cron.schedule('*/5 * * * *', async () => {
 
         const users = await prisma.user.findMany({
             where: {
