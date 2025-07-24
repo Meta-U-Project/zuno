@@ -201,6 +201,7 @@ model Notification {
   trigger_event   String
   sent_at         DateTime
   status          NotificationStatus
+  read			      Boolean				@default(false)
 }
 
 model Analytics {
