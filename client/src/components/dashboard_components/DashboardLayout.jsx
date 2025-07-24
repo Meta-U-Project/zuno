@@ -150,7 +150,7 @@ const DashboardLayout = () => {
             <div className="dashboard-card calendar-card grid-calendar">
                 <div className="card-header">
                     <h3>This Week's Calendar</h3>
-                    <a href="#" className="view-all-link">view all</a>
+                    <a href="/calendar" className="view-all-link">view all</a>
                 </div>
                 <div className="card-content">
                     <div className="calendar-grid">
@@ -231,7 +231,7 @@ const DashboardLayout = () => {
             <div className="dashboard-card courses-card grid-courses">
                 <div className="card-header">
                     <h3>Your Courses</h3>
-                    <a href="#" className="view-all-link">view all</a>
+                    <a href="/courses" className="view-all-link">view all</a>
                 </div>
                 <div className={`card-content ${courses.length > 2 ? 'courses-grid' : ''}`}>
                     {courses.length > 0 ? (
@@ -287,7 +287,7 @@ const DashboardLayout = () => {
             <div className="dashboard-card tasks-card grid-tasks">
                 <div className="card-header">
                     <h3>Upcoming Tasks</h3>
-                    <a href="#" className="view-all-link">view all</a>
+                    <a href="/tasks" className="view-all-link">view all</a>
                 </div>
                 <div className="card-content tasks-content">
                     {assignments.length > 0 ? (

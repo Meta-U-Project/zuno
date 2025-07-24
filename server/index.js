@@ -26,6 +26,9 @@ syncCanvasScheduler();
 const taskRoutes = require('./src/routes/taskRoutes');
 app.use('/api/task', taskRoutes);
 
+const noteRoutes = require('./src/routes/noteRoutes');
+app.use('/api/notes', noteRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Zuno backend running on port ${process.env.PORT}`);
 });

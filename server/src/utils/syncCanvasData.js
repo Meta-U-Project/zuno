@@ -50,6 +50,26 @@ async function syncCanvasData(user) {
                 console.warn(`Could not fetch teachers for course ${course.id}: ${err.message}`);
             }
 
+            let currentScore = null;
+            let currentGrade = null;
+
+            if (user.canvasUserId) {
+                try {
+                    const gradeRes = await canvas.get(`/courses/${course.id}/enrollments?user_id=${user.canvasUserId}`);
+                    const enrollments = gradeRes.data;
+
+                    if (enrollments && enrollments.length > 0) {
+                        const enrollment = enrollments[0];
+                        currentScore = enrollment.grades?.current_score;
+                        currentGrade = enrollment.grades?.current_grade;
+                    }
+                } catch (err) {
+                    console.warn(`Could not fetch enrollment data for course ${course.id}: ${err.message}`);
+                }
+            }
+
+            const canvasUrl = `https://${user.canvasDomain}/courses/${course.id}`;
+
             await prisma.course.upsert({
                 where: { id: course.id.toString() },
                 update: {
@@ -57,6 +77,9 @@ async function syncCanvasData(user) {
                     course_code: course.course_code || 'N/A',
                     instructor_name: instructorName,
                     term: course.term || 'N/A',
+                    current_score: currentScore,
+                    current_grade: currentGrade,
+                    canvas_url: canvasUrl,
                 },
                 create: {
                     id: course.id.toString(),
@@ -65,6 +88,9 @@ async function syncCanvasData(user) {
                     course_code: course.course_code || 'N/A',
                     instructor_name: instructorName,
                     term: course.term || 'N/A',
+                    current_score: currentScore,
+                    current_grade: currentGrade,
+                    canvas_url: canvasUrl,
                 }
             });
         }

@@ -8,49 +8,22 @@ const NotesCard = () => {
     useEffect(() => {
         const fetchRecentNotes = async () => {
             try {
-                // using mock data for now
-                const mockNotes = [
-                    {
-                        id: 1,
-                        title: "Calculus Chapter 5 Notes",
-                        content: "Derivatives and their applications in real-world problems...",
-                        course: "MATH 201",
-                        lastModified: new Date(Date.now() - 2 * 60 * 60 * 1000),
-                        tags: ["calculus", "derivatives"]
-                    },
-                    {
-                        id: 2,
-                        title: "History Essay Outline",
-                        content: "World War II causes and effects - thesis statement and main points...",
-                        course: "HIST 101",
-                        lastModified: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-                        tags: ["essay", "wwii"]
-                    },
-                    {
-                        id: 3,
-                        title: "Chemistry Lab Results",
-                        content: "Experiment 3: Acid-base titration results and analysis...",
-                        course: "CHEM 150",
-                        lastModified: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-                        tags: ["lab", "titration"]
-                    },
-                    {
-                        id: 4,
-                        title: "Programming Assignment Ideas",
-                        content: "Data structures project - implementing binary search tree...",
-                        course: "CS 201",
-                        lastModified: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-                        tags: ["programming", "data-structures"]
-                    }
-                ];
+                const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/notes`, {
+                    credentials: 'include',
+                });
 
-                setTimeout(() => {
-                    setNotes(mockNotes.slice(0, 4));
-                    setLoading(false);
-                }, 500);
-
+                if (response.ok) {
+                    const notesData = await response.json();
+                    const sortedNotes = notesData
+                        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                        .slice(0, 4);
+                    setNotes(sortedNotes);
+                } else {
+                    console.error('Failed to fetch notes');
+                }
             } catch (error) {
                 console.error('Error fetching notes:', error);
+            } finally {
                 setLoading(false);
             }
         };
@@ -74,9 +47,22 @@ const NotesCard = () => {
         return `${diffInWeeks}w ago`;
     };
 
+    const stripHtml = (html) => {
+        if (!html) return '';
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+        return textContent;
+    };
+
     const truncateContent = (content, maxLength = 80) => {
-        if (content.length <= maxLength) return content;
-        return content.substring(0, maxLength) + '...';
+        const plainText = stripHtml(content);
+
+        if (plainText.length <= maxLength) return plainText;
+        return plainText.substring(0, maxLength) + '...';
     };
 
     if (loading) {
@@ -99,23 +85,25 @@ const NotesCard = () => {
         <div className="dashboard-card notes-card">
             <div className="card-header">
                 <h3>Recent Notes</h3>
-                <a href="#" className="view-all-link">view all</a>
+                <a href="/notes" className="view-all-link">view all</a>
             </div>
             <div className="card-content">
                 {notes.length > 0 ? (
                     <div className="notes-list">
                         {notes.map((note) => (
-                            <div key={note.id} className="note-item">
+                            <div key={note.id} className="dash-note-item">
                                 <div className="note-main">
                                     <div className="note-header">
                                         <h4 className="note-title">{note.title}</h4>
-                                        <span className="note-time">{formatTimeAgo(note.lastModified)}</span>
+                                        <span className="note-time">{formatTimeAgo(new Date(note.updatedAt))}</span>
                                     </div>
                                     <p className="note-content">{truncateContent(note.content)}</p>
                                     <div className="note-footer">
-                                        <span className="note-course">{note.course}</span>
+                                        {note.courseName && (
+                                            <span className="note-course">{note.courseName}</span>
+                                        )}
                                         <div className="note-tags">
-                                            {note.tags.slice(0, 2).map((tag, index) => (
+                                            {note.tags && note.tags.slice(0, 2).map((tag, index) => (
                                                 <span key={index} className="note-tag">
                                                     {tag}
                                                 </span>
