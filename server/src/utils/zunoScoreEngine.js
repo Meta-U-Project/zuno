@@ -75,9 +75,14 @@ async function getCanvasCompletion(userId) {
 
     const momentumScore = calculateEMA(completionRates, 0.4);
 
+    if (!momentumScore || isNaN(momentumScore)) {
+        momentumScore = percent; // fallback if no history
+    }
+
+
     return {
         percent,
-        momentumScore: percent, // hardcoded for now since there is no completion history
+        momentumScore,
     };
 }
 
@@ -117,6 +122,23 @@ async function getZunoTaskCompletion(userId) {
 
     const percent = total === 0 ? 100 : Math.round((completed / total) * 100);
 
+    const history = await prisma.taskCompletionHistory.findMany({
+        where: { userId },
+        orderBy: { date: 'asc' },
+        take: 7,
+    });
+
+    const completionRates = history.map((h) => {
+        const total = h.zunoTotal || 0;
+        const completed = h.zunoCompleted || 0;
+        return total === 0 ? 100 : (completed / total) * 100;
+    });
+
+    let momentumScore = calculateEMA(completionRates, 0.4);
+
+    if (!momentumScore || isNaN(momentumScore)) {
+        momentumScore = percent;
+    }
     return {
         percent,
         momentumScore: percent, // fallback for now, similar to canvas
