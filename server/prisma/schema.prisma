@@ -50,6 +50,8 @@ model User {
   createdEvents   CalendarEvent[]  @relation("CreatedEvents")
   lectures        Lecture[]        @relation("UserLectures")
   notes           Note[]           @relation("UserNotes")
+  zunoScore       ZunoScore[]
+  taskCompletionHistory TaskCompletionHistory[]
 }
 
 enum DifficultyLevel {
@@ -141,6 +143,8 @@ model CalendarEvent {
   createdBy       User      @relation("CreatedEvents", fields: [createdById], references: [id])
   createdById     String
   googleEventId   String?   // ID of the event in Google Calendar
+  completed       Boolean   @default(false)
+  completedAt     DateTime?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -256,4 +260,27 @@ model Note {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ZunoScore {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  score             Float
+  canvasCompletion  Float
+  zunoTaskCompletion Float
+  studyAdherence    Float
+  taskDensityStress Float
+  createdAt         DateTime @default(now())
+}
+
+model TaskCompletionHistory {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  canvasCompleted Int
+  canvasTotal     Int
+  zunoCompleted   Int
+  zunoTotal       Int
+  date            DateTime @default(now())
 }
