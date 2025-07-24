@@ -32,6 +32,9 @@ app.use('/api/task', taskRoutes);
 const noteRoutes = require('./src/routes/noteRoutes');
 app.use('/api/notes', noteRoutes);
 
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
+app.use('/api/analytics', analyticsRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Zuno backend running on port ${process.env.PORT}`);
 });
