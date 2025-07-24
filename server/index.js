@@ -23,6 +23,9 @@ app.use('/api/canvas', canvasRoutes);
 const syncCanvasScheduler = require('./src/cron/syncCanvasScheduler')
 syncCanvasScheduler();
 
+const zunoScoreScheduler = require('./src/cron/zunoScoreScheduler')
+zunoScoreScheduler();
+
 const taskRoutes = require('./src/routes/taskRoutes');
 app.use('/api/task', taskRoutes);
 
