@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./DashboardLayout.css";
 import AnalyticsCard from "./AnalyticsCard";
 import NotesCard from "./NotesCard";
+import NotificationsSection from "../notifications/NotificationsSection";
 
 const DashboardLayout = () => {
     const [courses, setCourses] = useState([]);
@@ -256,27 +257,11 @@ const DashboardLayout = () => {
 
             <div className="dashboard-card notifications-card grid-notifs">
                 <div className="card-header">
-                    <h3>Recent Notification</h3>
+                    <h3>Recent Notifications</h3>
                     <a href="#" className="view-all-link">view all</a>
                 </div>
                 <div className="card-content">
-                    {announcements.length > 0 ? (
-                        announcements.map((announcement, index) => (
-                            <div key={index} className="notification-item">
-                                <div className="notification-content">
-                                    <h4>{announcement.title}</h4>
-                                    <p>{announcement.courseName}</p>
-                                </div>
-                                <div className="notification-time">
-                                    {formatDate(announcement.postedAt)}
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="empty-state">
-                            <p>No recent notifications</p>
-                        </div>
-                    )}
+                    <NotificationsSection />
                 </div>
             </div>
 
