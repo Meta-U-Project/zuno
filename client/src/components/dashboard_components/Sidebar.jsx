@@ -14,11 +14,10 @@ const Sidebar = () => {
         { id: "tasks", label: "Tasks", path: "/tasks" },
         { id: "notes", label: "Notes", path: "/notes" },
         { id: "notifications", label: "Notifications", path: "/notifications" },
-        { id: "inbox", label: "Inbox", path: "/inbox" },
-        { id: "study-chat", label: "Study Chat", path: "/study-chat" }
+        // { id: "inbox", label: "Inbox", path: "/inbox" },
+        // { id: "study-chat", label: "Study Chat", path: "/study-chat" }
     ];
 
-    // Update active item based on current location
     useEffect(() => {
         const currentPath = location.pathname;
         const currentItem = navigationItems.find(item => item.path === currentPath);
@@ -29,29 +28,7 @@ const Sidebar = () => {
 
     const handleNavigation = (item) => {
         setActiveItem(item.id);
-        // For now, only certain pages navigation works
-        if (item.id === "dashboard" || item.id === "calendar" || item.id === "tasks" || item.id === "courses" || item.id === "notes" || item.id === "notifications") {
-            navigate(item.path);
-        } else {
-            // Placeholder for future navigation
-        }
-    };
-
-    const handleLogout = async () => {
-        try {
-            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/logout`, {
-                method: 'POST',
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                navigate('/login');
-            } else {
-                throw new Error('Failed to log out');
-            }
-        } catch (error) {
-            console.error('Error during logout:', error);
-        }
+        navigate(item.path);
     };
 
     return (

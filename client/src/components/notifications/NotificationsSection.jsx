@@ -39,7 +39,6 @@ const NotificationsSection = () => {
 	return (
 		<div className="notifications-section">
 			{notifications.length > 0 ? (
-				// Only display the latest two notifications
 				notifications.slice(0, 2).map((notification) => (
 					<div
 						key={notification.id}

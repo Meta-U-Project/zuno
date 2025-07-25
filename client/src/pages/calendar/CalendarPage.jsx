@@ -118,7 +118,6 @@ const CalendarPage = () => {
                     };
                 });
 
-                // Combine both types of events
                 setEvents([...transformedEvents, ...transformedClassSessions]);
             }
         } catch (err) {
@@ -318,10 +317,6 @@ const CalendarPage = () => {
         setCurrentDate(newDate);
     };
 
-    const handleAddEvent = () => {
-        //
-    };
-
     const getCurrentTitle = () => {
         const options = {
             year: 'numeric',
@@ -387,13 +382,6 @@ const CalendarPage = () => {
                         </div>
 
                         <div className="calendar-header-right">
-                            <button className="calendar-add-event-button" onClick={handleAddEvent}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Add Event
-                            </button>
-
                             {googleConnected && (
                                 <button
                                     className="calendar-sync-button"

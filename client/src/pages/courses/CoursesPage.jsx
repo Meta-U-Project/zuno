@@ -48,7 +48,6 @@ const CoursesPage = () => {
     }, []);
 
     const handleSettings = () => {
-        // Future settings functionality
     };
 
     const handleViewCourseDetails = async (course) => {
@@ -103,7 +102,7 @@ const CoursesPage = () => {
             if (announcementsResponse.status === 200) {
                 const courseAnnouncements = announcementsResponse.data
                     .filter(announcement => announcement.courseId === course.id)
-                    .sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt)); // Sort newest first
+                    .sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
 
                 setAnnouncements(courseAnnouncements);
             }

@@ -68,7 +68,7 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
     };
 
     const removeTimeRange = (dayIndex, timeIndex) => {
-        if (preferences.preferredTimes[dayIndex].timeRanges.length <= 1) return; // Don't remove the last one
+        if (preferences.preferredTimes[dayIndex].timeRanges.length <= 1) return;
         const updatedPreferences = { ...preferences };
         updatedPreferences.preferredTimes[dayIndex].timeRanges.splice(timeIndex, 1);
         setPreferences(updatedPreferences);
@@ -99,7 +99,7 @@ const StudyPreferencesModal = ({ isOpen, onClose, onSave }) => {
             setError(null);
 
             const filteredPreferences = {
-                dailyHours: preferences.dailyHours.filter(hours => hours.day === 'default'), // Only keep default hours
+                dailyHours: preferences.dailyHours.filter(hours => hours.day === 'default'),
                 preferredTimes: preferences.preferredTimes.filter(time => time.enabled)
             };
 

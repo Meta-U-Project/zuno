@@ -126,7 +126,7 @@ const NotesPage = () => {
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent' or 'alphabetical'
+  const [sortBy, setSortBy] = useState('recent');
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);

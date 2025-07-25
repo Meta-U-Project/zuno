@@ -15,7 +15,6 @@ async function syncCanvasData(user) {
     const userId = user.id;
 
     try {
-        // Fetch and store Canvas user ID if not already set
         if (!user.canvasUserId) {
             try {
                 const profileResponse = await canvas.get('/users/self');
@@ -26,13 +25,12 @@ async function syncCanvasData(user) {
                         where: { id: userId },
                         data: { canvasUserId }
                     });
-                    user.canvasUserId = canvasUserId; // Update the local user object
+                    user.canvasUserId = canvasUserId;
                 }
             } catch (profileErr) {
                 console.error('Error fetching Canvas user profile:', profileErr.message);
             }
         }
-        // Sync courses
         const coursesRes = await canvas.get('/courses?per_page=100');
         const courseData = coursesRes.data;
 
@@ -94,7 +92,6 @@ async function syncCanvasData(user) {
             });
         }
 
-        // Sync assignments and related calendar events
         for (const course of courseData) {
             const assignmentsRes = await canvas.get(`/courses/${course.id}/assignments?per_page=100`);
             const assignments = assignmentsRes.data;
@@ -189,13 +186,12 @@ async function syncCanvasData(user) {
             }
         }
 
-        // Sync Discussions
         for (const course of courseData) {
             const discussionsRes = await canvas.get(`/courses/${course.id}/discussion_topics?per_page=100`);
             const discussions = discussionsRes.data;
 
             for (const discussion of discussions) {
-                    const isGraded = discussion.assignment && discussion.assignment.points_possible > 0; // Fixed: > 0 instead of >= 0
+                    const isGraded = discussion.assignment && discussion.assignment.points_possible > 0;
                     const hasDueDate = discussion.assignment && discussion.assignment.due_at;
 
                     if (isGraded || hasDueDate) {
@@ -295,7 +291,6 @@ async function syncCanvasData(user) {
                             }}}}}
 
 
-        // Sync announcements
         for (const course of courseData) {
             const annRes = await canvas.get(`/courses/${course.id}/discussion_topics?only_announcements=true&per_page=100`);
             const announcements = annRes.data;
@@ -352,7 +347,6 @@ async function syncCanvasData(user) {
                     });
 
                     if (existingLecture) {
-                        // Update existing lecture
                         const updatedLecture = await prisma.lecture.update({
                             where: { id: existingLecture.id },
                             data: {
@@ -368,7 +362,6 @@ async function syncCanvasData(user) {
                             lecturesToSync.push(updatedLecture);
                         }
                     } else {
-                        // Create new lecture
                         const newLecture = await prisma.lecture.create({
                             data: {
                                 userId: user.id,
@@ -415,7 +408,6 @@ async function syncCanvasData(user) {
                 console.error(`Error batch syncing lectures to Google Calendar:`, syncError);
             }
         }
-        // Sync analytics
         const tasks = await prisma.task.findMany({
             where: { userId: user.id }
         });

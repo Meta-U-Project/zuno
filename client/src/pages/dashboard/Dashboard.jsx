@@ -19,7 +19,7 @@ const Dashboard = () => {
     const [preferencesSaved, setPreferencesSaved] = useState(false);
 
     const handleSettings = () => {
-        // Future settings functionality
+
     };
 
     const handleSavePreferences = (_preferences) => {

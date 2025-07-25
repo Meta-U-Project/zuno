@@ -131,7 +131,7 @@ function getFreeTimeSlots(existingEvents, startDate, endDate) {
 
         const isToday = day.toDateString() === now.toDateString();
         if (isToday && now > cursor) {
-            cursor = new Date(Math.min(now.getTime(), endOfDay.getTime())); // clip to endOfDay
+            cursor = new Date(Math.min(now.getTime(), endOfDay.getTime()));
         }
 
         const eventsToday = existingEvents.filter(ev => {
