@@ -2,6 +2,7 @@ const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 
 const { sendEmailNotification } = require('../services/emailService');
+const { sendSmsNotification } = require('../services/textbeltService');
 
 const triggers = [
 	{
@@ -9,6 +10,7 @@ const triggers = [
 		tag: 'warning',
 		priority: 1,
 		emailNotification: true,
+		smsNotification: true,
 		condition: ({ zunoHistory }) => {
 			if (zunoHistory.length < 2) return false;
 			const last = zunoHistory[zunoHistory.length - 1].score;
@@ -22,6 +24,7 @@ const triggers = [
 		tag: 'warning',
 		priority: 1,
 		emailNotification: true,
+		smsNotification: true,
 		condition: ({ studyStats }) => studyStats && studyStats.adherenceScore < 30,
 		message: "⚠️ [Warning] You're missing many study sessions. Need help rescheduling?",
 	},
@@ -30,7 +33,8 @@ const triggers = [
 		tag: 'warning',
 		priority: 2,
 		emailNotification: true,
-		condition: ({ taskDensity }) => taskDensity && taskDensity.tasksNext3 >= 4, // Increased threshold from 3 to 4
+		smsNotification: true,
+		condition: ({ taskDensity }) => taskDensity && taskDensity.tasksNext3 >= 4,
 		message: "⚠️ [Heads-up] You have several tasks due in the next few days. Time to focus! 🎯",
 	},
 
@@ -39,6 +43,7 @@ const triggers = [
 		tag: 'positive',
 		priority: 3,
 		emailNotification: false,
+		smsNotification: false,
 		condition: ({ zunoHistory, trendScore }) => {
 			if (zunoHistory.length < 2) return false;
 			const last = zunoHistory[zunoHistory.length - 1].score;
@@ -54,6 +59,7 @@ const triggers = [
 		tag: 'positive',
 		priority: 4,
 		emailNotification: false,
+		smsNotification: false,
 		condition: ({ canvasStats, zunoStats }) => {
 			const highCanvas = canvasStats && canvasStats.percent >= 95;
 			const highZuno = zunoStats && zunoStats.percent >= 95;
@@ -69,7 +75,6 @@ async function evaluateAndCreateNotifications(userId, metrics) {
 			try {
 				return trigger.condition(metrics);
 			} catch (error) {
-				console.error(`Error evaluating trigger ${trigger.event}:`, error);
 				return false;
 			}
 		})
@@ -93,46 +98,49 @@ async function evaluateAndCreateNotifications(userId, metrics) {
 
 		const user = await prisma.user.findUnique({
 			where: { id: userId },
-			select: { email: true, firstName: true }
+			select: { email: true, firstName: true, phone: true }
 		});
 
-		if (user && user.email) {
+		if (user) {
 			for (let i = 0; i < limitedTriggers.length; i++) {
 				const trigger = limitedTriggers[i];
 				const notification = newNotifications[i];
+				let additionalData = {};
 
-				if (trigger.emailNotification) {
+				if (trigger.event === 'UPCOMING_TASKS' && metrics.taskDensity) {
+					const upcomingTasks = await prisma.task.findMany({
+						where: {
+							userId,
+							completed: false,
+							deadline: {
+								gte: new Date(),
+								lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+							}
+						},
+						orderBy: { deadline: 'asc' },
+						include: { course: true },
+						take: 5
+					});
+
+					additionalData.upcomingTasks = upcomingTasks;
+				}
+
+				if (trigger.emailNotification && user.email) {
 					try {
-						let additionalData = {};
-
-						if (trigger.event === 'UPCOMING_TASKS' && metrics.taskDensity) {
-							const upcomingTasks = await prisma.task.findMany({
-								where: {
-									userId,
-									completed: false,
-									deadline: {
-										gte: new Date(),
-										lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // 3 days
-									}
-								},
-								orderBy: { deadline: 'asc' },
-								include: { course: true },
-								take: 5
-							});
-
-							additionalData.upcomingTasks = upcomingTasks;
-						}
-
 						await sendEmailNotification(user, notification, additionalData);
 					} catch (error) {
-						console.error(`Error sending email notification for event ${trigger.event}:`, error);
+					}
+				}
+
+				if (trigger.smsNotification && user.phone) {
+					try {
+						await sendSmsNotification(user, notification);
+					} catch (error) {
 					}
 				}
 			}
 		}
 	}
-
-	return newNotifications;
 }
 
 module.exports = { evaluateAndCreateNotifications };
