@@ -1,11 +1,14 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 
+const { sendEmailNotification } = require('../services/emailService');
+
 const triggers = [
 	{
 		event: 'ZUNO_DROP',
 		tag: 'warning',
 		priority: 1,
+		emailNotification: true,
 		condition: ({ zunoHistory }) => {
 			if (zunoHistory.length < 2) return false;
 			const last = zunoHistory[zunoHistory.length - 1].score;
@@ -18,6 +21,7 @@ const triggers = [
 		event: 'LOW_ADHERENCE',
 		tag: 'warning',
 		priority: 1,
+		emailNotification: true,
 		condition: ({ studyStats }) => studyStats && studyStats.adherenceScore < 30,
 		message: "⚠️ [Warning] You're missing many study sessions. Need help rescheduling?",
 	},
@@ -25,13 +29,16 @@ const triggers = [
 		event: 'UPCOMING_TASKS',
 		tag: 'warning',
 		priority: 2,
-		condition: ({ taskDensity }) => taskDensity && taskDensity.tasksNext3 >= 4,
+		emailNotification: true,
+		condition: ({ taskDensity }) => taskDensity && taskDensity.tasksNext3 >= 4, // Increased threshold from 3 to 4
 		message: "⚠️ [Heads-up] You have several tasks due in the next few days. Time to focus! 🎯",
 	},
+
 	{
 		event: 'ZUNO_IMPROVEMENT',
 		tag: 'positive',
 		priority: 3,
+		emailNotification: false,
 		condition: ({ zunoHistory, trendScore }) => {
 			if (zunoHistory.length < 2) return false;
 			const last = zunoHistory[zunoHistory.length - 1].score;
@@ -46,6 +53,7 @@ const triggers = [
 		event: 'HIGH_COMPLETION',
 		tag: 'positive',
 		priority: 4,
+		emailNotification: false,
 		condition: ({ canvasStats, zunoStats }) => {
 			const highCanvas = canvasStats && canvasStats.percent >= 95;
 			const highZuno = zunoStats && zunoStats.percent >= 95;
@@ -61,6 +69,7 @@ async function evaluateAndCreateNotifications(userId, metrics) {
 			try {
 				return trigger.condition(metrics);
 			} catch (error) {
+				console.error(`Error evaluating trigger ${trigger.event}:`, error);
 				return false;
 			}
 		})
@@ -81,6 +90,46 @@ async function evaluateAndCreateNotifications(userId, metrics) {
 
 	if (newNotifications.length) {
 		await prisma.notification.createMany({ data: newNotifications });
+
+		const user = await prisma.user.findUnique({
+			where: { id: userId },
+			select: { email: true, firstName: true }
+		});
+
+		if (user && user.email) {
+			for (let i = 0; i < limitedTriggers.length; i++) {
+				const trigger = limitedTriggers[i];
+				const notification = newNotifications[i];
+
+				if (trigger.emailNotification) {
+					try {
+						let additionalData = {};
+
+						if (trigger.event === 'UPCOMING_TASKS' && metrics.taskDensity) {
+							const upcomingTasks = await prisma.task.findMany({
+								where: {
+									userId,
+									completed: false,
+									deadline: {
+										gte: new Date(),
+										lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // 3 days
+									}
+								},
+								orderBy: { deadline: 'asc' },
+								include: { course: true },
+								take: 5
+							});
+
+							additionalData.upcomingTasks = upcomingTasks;
+						}
+
+						await sendEmailNotification(user, notification, additionalData);
+					} catch (error) {
+						console.error(`Error sending email notification for event ${trigger.event}:`, error);
+					}
+				}
+			}
+		}
 	}
 
 	return newNotifications;
