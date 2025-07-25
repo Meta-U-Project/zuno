@@ -48,7 +48,6 @@ const CoursesPage = () => {
     }, []);
 
     const handleSettings = () => {
-        console.log('Settings clicked - Coming soon!');
         // Future settings functionality
     };
 
@@ -445,7 +444,7 @@ const CoursesPage = () => {
                                 </div>
 
                                 <div className="course-tabs">
-                                    <button 
+                                    <button
                                         className={`tab-button ${activeTab === "tasks" ? "active" : ""}`}
                                         onClick={() => setActiveTab("tasks")}
                                     >
@@ -455,7 +454,7 @@ const CoursesPage = () => {
                                         </svg>
                                         Tasks
                                     </button>
-                                    <button 
+                                    <button
                                         className={`tab-button ${activeTab === "studyBlocks" ? "active" : ""}`}
                                         onClick={() => setActiveTab("studyBlocks")}
                                     >
@@ -465,7 +464,7 @@ const CoursesPage = () => {
                                         </svg>
                                         Study Blocks
                                     </button>
-                                    <button 
+                                    <button
                                         className={`tab-button ${activeTab === "announcements" ? "active" : ""}`}
                                         onClick={() => setActiveTab("announcements")}
                                     >
@@ -600,15 +599,15 @@ const CoursesPage = () => {
                                                             })}
                                                         </span>
                                                     </div>
-                                                    <div 
+                                                    <div
                                                         className="announcement-content"
                                                         dangerouslySetInnerHTML={{ __html: announcement.message }}
                                                     />
                                                     {announcement.url && (
                                                         <div className="announcement-actions">
-                                                            <a 
-                                                                href={announcement.url} 
-                                                                target="_blank" 
+                                                            <a
+                                                                href={announcement.url}
+                                                                target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="announcement-link"
                                                             >

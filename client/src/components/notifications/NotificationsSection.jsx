@@ -39,14 +39,15 @@ const NotificationsSection = () => {
 	return (
 		<div className="notifications-section">
 			{notifications.length > 0 ? (
-				notifications.slice(0, 4).map((notification) => (
+				// Only display the latest two notifications
+				notifications.slice(0, 2).map((notification) => (
 					<div
 						key={notification.id}
 						className={`notification-item ${!notification.read ? 'unread' : ''} ${getTagClass(notification.tag)}`}
 						onClick={() => markAsRead(notification.id)}
 					>
 						<div className="notification-content">
-							<p>{notification.content}</p>
+							<p className="truncate-text">{notification.content}</p>
 						</div>
 						<div className="notification-time">
 							{formatDate(notification.sent_at)}

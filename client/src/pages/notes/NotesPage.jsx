@@ -415,8 +415,7 @@ const NotesPage = () => {
   };
 
   const handleSettings = () => {
-    console.log('Settings clicked - Coming soon!');
-  };
+};
 
   const handleDeleteNote = async () => {
     if (!selectedNote) return;

@@ -34,7 +34,6 @@ const Sidebar = () => {
             navigate(item.path);
         } else {
             // Placeholder for future navigation
-            console.log(`Navigating to ${item.label} - Coming soon!`);
         }
     };
 

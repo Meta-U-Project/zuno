@@ -258,7 +258,7 @@ const DashboardLayout = () => {
             <div className="dashboard-card notifications-card grid-notifs">
                 <div className="card-header">
                     <h3>Recent Notifications</h3>
-                    <a href="#" className="view-all-link">view all</a>
+                    <a href="/notifications" className="view-all-link">view all</a>
                 </div>
                 <div className="card-content">
                     <NotificationsSection />

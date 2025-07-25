@@ -26,7 +26,6 @@ async function syncCanvasData(user) {
                         where: { id: userId },
                         data: { canvasUserId }
                     });
-                    console.log(`Updated Canvas user ID for user ${userId}: ${canvasUserId}`);
                     user.canvasUserId = canvasUserId; // Update the local user object
                 }
             } catch (profileErr) {
