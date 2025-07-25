@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
 
 const NotificationContext = createContext();
 
@@ -32,7 +32,7 @@ export const NotificationProvider = ({ children }) => {
 		}
 	};
 
-	const fetchAllNotifications = async () => {
+	const fetchAllNotifications = useCallback(async () => {
 		try {
 			const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/notifications`, {
 				credentials: 'include',
@@ -46,9 +46,9 @@ export const NotificationProvider = ({ children }) => {
 		} catch (error) {
 			console.error('Error fetching all notifications:', error);
 		}
-	};
+	}, []);
 
-	const markAsRead = async (notificationId) => {
+	const markAsRead = useCallback(async (notificationId) => {
 		try {
 			const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/notifications/${notificationId}/read`, {
 				method: 'PUT',
@@ -71,9 +71,9 @@ export const NotificationProvider = ({ children }) => {
 		} catch (error) {
 			console.error('Error marking notification as read:', error);
 		}
-	};
+	}, [currentPopupNotification]);
 
-	const markAllAsRead = async () => {
+	const markAllAsRead = useCallback(async () => {
 		try {
 			const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/notifications/read-all`, {
 				method: 'PUT',
@@ -91,11 +91,11 @@ export const NotificationProvider = ({ children }) => {
 		} catch (error) {
 			console.error('Error marking all notifications as read:', error);
 		}
-	};
+	}, []);
 
-	const closePopup = () => {
+	const closePopup = useCallback(() => {
 		setShowPopup(false);
-	};
+	}, []);
 
 	useEffect(() => {
 		fetchUnreadNotifications();
