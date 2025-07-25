@@ -76,7 +76,6 @@ function filterSlotsByPreferences(freeSlots, preferenceMap, minBlockSize = 15) {
         const dayName = getDayName(slot.start);
         const preferredTimesForDay = preferenceMap[dayName];
 
-        // If no preferences for this day, skip this slot
         if (!preferredTimesForDay || preferredTimesForDay.length === 0) {
             return;
         }
@@ -101,7 +100,6 @@ function filterSlotsByPreferences(freeSlots, preferenceMap, minBlockSize = 15) {
 
                 const durationMinutes = (overlapEnd - overlapStart) / (1000 * 60);
 
-                // Use the minBlockSize parameter instead of hardcoded 30 minutes
                 if (durationMinutes >= minBlockSize) {
                     filteredSlots.push({
                         start: overlapStart,
@@ -116,7 +114,6 @@ function filterSlotsByPreferences(freeSlots, preferenceMap, minBlockSize = 15) {
         });
     });
 
-    // Sort slots by start time
     filteredSlots.sort((a, b) => a.start - b.start);
 
     return filteredSlots;

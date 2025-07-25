@@ -118,7 +118,6 @@ const CalendarPage = () => {
                     };
                 });
 
-                // Combine both types of events
                 setEvents([...transformedEvents, ...transformedClassSessions]);
             }
         } catch (err) {
@@ -318,10 +317,6 @@ const CalendarPage = () => {
         setCurrentDate(newDate);
     };
 
-    const handleAddEvent = () => {
-        //
-    };
-
     const getCurrentTitle = () => {
         const options = {
             year: 'numeric',
@@ -387,13 +382,6 @@ const CalendarPage = () => {
                         </div>
 
                         <div className="calendar-header-right">
-                            <button className="calendar-add-event-button" onClick={handleAddEvent}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                Add Event
-                            </button>
-
                             {googleConnected && (
                                 <button
                                     className="calendar-sync-button"
@@ -484,7 +472,9 @@ const CalendarPage = () => {
                                         <div class="tooltip-header" style="background: ${event.backgroundColor}">
                                             <div class="tooltip-type">${eventType.toUpperCase()}</div>
                                             <div class="tooltip-title">${event.title}</div>
-                                            ${event.extendedProps.completed ? '<div class="tooltip-completed">✓ Completed</div>' : ''}
+                                            ${event.extendedProps.completed ?
+                                                `<div class="tooltip-completed">✓ ${eventType === 'task_block' ? 'Attended' : 'Completed'}</div>`
+                                                : ''}
                                         </div>
                                         <div class="tooltip-body">
                                     `;
@@ -568,6 +558,17 @@ const CalendarPage = () => {
                                     }
 
                                     tooltipContent += `</div>`;
+                                    if (eventType === 'task_block' && !isPending && !event.extendedProps.isPending) {
+                                        tooltipContent += `
+                                            <div class="tooltip-footer">
+                                                <button class="attendance-button ${event.extendedProps.completed ? 'attended' : ''}"
+                                                        data-event-id="${event.id}">
+                                                    ${event.extendedProps.completed ? 'Mark as Not Attended' : 'Mark as Attended'}
+                                                </button>
+                                            </div>
+                                        `;
+                                    }
+
                                     tooltip.innerHTML = tooltipContent;
 
                                     document.body.appendChild(tooltip);
@@ -601,6 +602,72 @@ const CalendarPage = () => {
                                             tooltip.parentNode.removeChild(tooltip);
                                         }
                                     });
+                                    const attendanceButton = tooltip.querySelector('.attendance-button');
+                                    if (attendanceButton) {
+                                        attendanceButton.addEventListener('click', async (e) => {
+                                            e.stopPropagation();
+                                            const eventId = attendanceButton.getAttribute('data-event-id');
+                                            const isCurrentlyCompleted = event.extendedProps.completed;
+
+                                            try {
+                                                const response = await axios.put(
+                                                    `${import.meta.env.VITE_SERVER_URL}/task/calendar-event/${eventId}/attendance`,
+                                                    { attended: !isCurrentlyCompleted },
+                                                    { withCredentials: true }
+                                                );
+
+                                                if (response.status === 200) {
+                                                    const updatedEvent = response.data.event;
+                                                    const calendarApi = calendarRef.current.getApi();
+                                                    const eventObj = calendarApi.getEventById(eventId);
+
+                                                    if (eventObj) {
+                                                        eventObj.setExtendedProp('completed', updatedEvent.completed);
+                                                        const newColors = getEventColor(
+                                                            eventObj.extendedProps.type,
+                                                            eventObj.extendedProps.source,
+                                                            updatedEvent.completed
+                                                        );
+
+                                                        eventObj.setProp('backgroundColor', newColors.bg);
+                                                        eventObj.setProp('borderColor', newColors.border);
+                                                        const completedDiv = tooltip.querySelector('.tooltip-completed');
+                                                        if (updatedEvent.completed) {
+                                                            if (!completedDiv) {
+                                                                const headerDiv = tooltip.querySelector('.tooltip-header');
+                                                                headerDiv.innerHTML += `<div class="tooltip-completed">✓ ${eventObj.extendedProps.type === 'task_block' ? 'Attended' : 'Completed'}</div>`;
+                                                            }
+                                                            attendanceButton.textContent = eventObj.extendedProps.type === 'task_block' ? 'Mark as Not Attended' : 'Mark as Not Completed';
+                                                            attendanceButton.classList.add('attended');
+                                                        } else {
+                                                            if (completedDiv) {
+                                                                completedDiv.remove();
+                                                            }
+                                                            attendanceButton.textContent = eventObj.extendedProps.type === 'task_block' ? 'Mark as Attended' : 'Mark as Completed';
+                                                            attendanceButton.classList.remove('attended');
+                                                        }
+
+                                                        if (updatedEvent.completed) {
+                                                            info.el.style.opacity = '0.6';
+                                                            const titleEl = info.el.querySelector('.fc-event-title');
+                                                            if (titleEl) {
+                                                                titleEl.style.textDecoration = 'line-through';
+                                                            }
+                                                        } else {
+                                                            info.el.style.opacity = '1';
+                                                            const titleEl = info.el.querySelector('.fc-event-title');
+                                                            if (titleEl) {
+                                                                titleEl.style.textDecoration = 'none';
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } catch (err) {
+                                                console.error('Error updating event attendance:', err);
+                                                alert('Failed to update attendance status. Please try again.');
+                                            }
+                                        });
+                                    }
                                 }}
                                 noEventsText="No events to display"
                             />

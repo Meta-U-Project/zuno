@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -50,6 +44,8 @@ model User {
   createdEvents   CalendarEvent[]  @relation("CreatedEvents")
   lectures        Lecture[]        @relation("UserLectures")
   notes           Note[]           @relation("UserNotes")
+  zunoScore       ZunoScore[]
+  taskCompletionHistory TaskCompletionHistory[]
 }
 
 enum DifficultyLevel {
@@ -81,9 +77,8 @@ enum NotificationType {
 }
 
 enum NotificationStatus {
-  PENDING
-  SENT
-  FAILED
+  UNREAD
+  READ
 }
 
 model Course {
@@ -141,6 +136,8 @@ model CalendarEvent {
   createdBy       User      @relation("CreatedEvents", fields: [createdById], references: [id])
   createdById     String
   googleEventId   String?   // ID of the event in Google Calendar
+  completed       Boolean   @default(false)
+  completedAt     DateTime?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -197,6 +194,8 @@ model Notification {
   trigger_event   String
   sent_at         DateTime
   status          NotificationStatus
+  read			      Boolean				@default(false)
+  tag             String        @default("INFO")
 }
 
 model Analytics {
@@ -256,4 +255,27 @@ model Note {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ZunoScore {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  score             Float
+  canvasCompletion  Float
+  zunoTaskCompletion Float
+  studyAdherence    Float
+  taskDensityStress Float
+  createdAt         DateTime @default(now())
+}
+
+model TaskCompletionHistory {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  canvasCompleted Int
+  canvasTotal     Int
+  zunoCompleted   Int
+  zunoTotal       Int
+  date            DateTime @default(now())
 }

@@ -73,7 +73,6 @@ const TasksPage = () => {
 
 
     const handleSettings = () => {
-        console.log('Settings clicked - Coming soon!');
         // Future settings functionality
     };
 

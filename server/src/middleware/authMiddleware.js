@@ -30,7 +30,7 @@ const verifyResetToken = (user, token) => {
 const createPasswordResetToken = ({_id, email, password}) => {
     const secret = password;
     return jwt.sign({id: _id, email}, secret, {
-        expiresIn: '1h', // change to 15mins
+        expiresIn: '1h',
     });
 };
 

@@ -19,8 +19,7 @@ const Dashboard = () => {
     const [preferencesSaved, setPreferencesSaved] = useState(false);
 
     const handleSettings = () => {
-        console.log('Settings clicked - Coming soon!');
-        // Future settings functionality
+
     };
 
     const handleSavePreferences = (_preferences) => {

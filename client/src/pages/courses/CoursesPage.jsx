@@ -48,8 +48,6 @@ const CoursesPage = () => {
     }, []);
 
     const handleSettings = () => {
-        console.log('Settings clicked - Coming soon!');
-        // Future settings functionality
     };
 
     const handleViewCourseDetails = async (course) => {
@@ -104,7 +102,7 @@ const CoursesPage = () => {
             if (announcementsResponse.status === 200) {
                 const courseAnnouncements = announcementsResponse.data
                     .filter(announcement => announcement.courseId === course.id)
-                    .sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt)); // Sort newest first
+                    .sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
 
                 setAnnouncements(courseAnnouncements);
             }
@@ -445,7 +443,7 @@ const CoursesPage = () => {
                                 </div>
 
                                 <div className="course-tabs">
-                                    <button 
+                                    <button
                                         className={`tab-button ${activeTab === "tasks" ? "active" : ""}`}
                                         onClick={() => setActiveTab("tasks")}
                                     >
@@ -455,7 +453,7 @@ const CoursesPage = () => {
                                         </svg>
                                         Tasks
                                     </button>
-                                    <button 
+                                    <button
                                         className={`tab-button ${activeTab === "studyBlocks" ? "active" : ""}`}
                                         onClick={() => setActiveTab("studyBlocks")}
                                     >
@@ -465,7 +463,7 @@ const CoursesPage = () => {
                                         </svg>
                                         Study Blocks
                                     </button>
-                                    <button 
+                                    <button
                                         className={`tab-button ${activeTab === "announcements" ? "active" : ""}`}
                                         onClick={() => setActiveTab("announcements")}
                                     >
@@ -600,15 +598,15 @@ const CoursesPage = () => {
                                                             })}
                                                         </span>
                                                     </div>
-                                                    <div 
+                                                    <div
                                                         className="announcement-content"
                                                         dangerouslySetInnerHTML={{ __html: announcement.message }}
                                                     />
                                                     {announcement.url && (
                                                         <div className="announcement-actions">
-                                                            <a 
-                                                                href={announcement.url} 
-                                                                target="_blank" 
+                                                            <a
+                                                                href={announcement.url}
+                                                                target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="announcement-link"
                                                             >

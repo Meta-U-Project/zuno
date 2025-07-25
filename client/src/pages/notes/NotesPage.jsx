@@ -126,7 +126,7 @@ const NotesPage = () => {
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent' or 'alphabetical'
+  const [sortBy, setSortBy] = useState('recent');
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -415,8 +415,7 @@ const NotesPage = () => {
   };
 
   const handleSettings = () => {
-    console.log('Settings clicked - Coming soon!');
-  };
+};
 
   const handleDeleteNote = async () => {
     if (!selectedNote) return;

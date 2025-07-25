@@ -17,22 +17,3 @@ const Seperator = () => {
 };
 
 export default Seperator;
-
-// import React from "react";
-
-// const Separator = () => {
-//     return (
-//         <div
-//             style={{
-//                 height: "1px",
-//                 backgroundColor: "gray",
-//                 margin: "20px auto",
-//                 maxWidth: "100%",
-//                 width: "100%",
-//                 transition: "width 0.5s ease 0.3s"
-//             }}
-//         />
-//     );
-// };
-
-// export default Separator;

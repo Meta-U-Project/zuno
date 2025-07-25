@@ -13,6 +13,28 @@ import ProfilePage from './pages/profile/ProfilePage';
 import TasksPage from './pages/tasks/TasksPage';
 import CoursesPage from './pages/courses/CoursesPage';
 import NotesPage from './pages/notes/NotesPage';
+import NotificationsPage from './pages/notifications/NotificationsPage';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationPopup from './components/notifications/NotificationPopup';
+
+const AuthenticatedRoutes = () => {
+  return (
+    <NotificationProvider>
+      <>
+        <Routes>
+          <Route path="/dashboard" element={<Dashboard/>}/>
+          <Route path="/calendar" element={<CalendarPage/>}/>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/notes" element={<NotesPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+        </Routes>
+        <NotificationPopup />
+      </>
+    </NotificationProvider>
+  );
+};
 
 const App = () => {
   return (
@@ -21,16 +43,12 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/signup" element={<SignUpPage/>}/>
-        <Route path="/dashboard" element={<Dashboard/>}/>
-        <Route path="/calendar" element={<CalendarPage/>}/>
         <Route path="/connect" element={<ConnectPage/>}/>
         <Route path="/canvas-auth" element={<CanvasAuthPage/>}/>
         <Route path="/forgot-password" element={<ResetPassword />} />
         <Route path="/reset-password/:id/:token" element={<NewPasswordPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/courses" element={<CoursesPage />} />
-        <Route path="/notes" element={<NotesPage />} />
+
+        <Route path="/*" element={<AuthenticatedRoutes />} />
       </Routes>
     </div>
   );

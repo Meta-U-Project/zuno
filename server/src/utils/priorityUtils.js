@@ -11,7 +11,7 @@ function getTaskTypeScore(task) {
     if (submissions.includes("media_recording")) return 0.5;
     if (submissions.includes("none")) return 0.3;
 
-    return 0.4; // fallback
+    return 0.4;
 }
 
 function calculatePriorityScore(task) {
@@ -57,10 +57,10 @@ function estimateStudyTime(task) {
     if (type === 'DISCUSSION') multiplier = 0.5;
     else if (type === 'QUIZ') multiplier = 0.8;
     else if (type === 'ASSIGNMENT') multiplier = 1;
-    else multiplier = 0.9; // fallback for undefined types
+    else multiplier = 0.9;
 
     const estimatedTime = baseTime * multiplier;
-    return Math.max(0.5, Math.round(estimatedTime * 2) / 2); // round to nearest 0.5, min 0.5
+    return Math.max(0.5, Math.round(estimatedTime * 2) / 2);
 }
 
 module.exports = {
