@@ -107,7 +107,7 @@ const NotificationsPage = () => {
               Positive
             </button>
           </div>
-          
+
           {unreadCount > 0 && (
             <button className="mark-all-read-button" onClick={handleMarkAllAsRead}>
               Mark all as read
@@ -152,8 +152,8 @@ const NotificationsPage = () => {
               </div>
               <p>No notifications found</p>
               <p className="empty-subtitle">
-                {filter !== "all" 
-                  ? "Try changing your filter to see more notifications" 
+                {filter !== "all"
+                  ? "Try changing your filter to see more notifications"
                   : "You're all caught up!"}
               </p>
             </div>
