@@ -83,9 +83,8 @@ enum NotificationType {
 }
 
 enum NotificationStatus {
-  PENDING
-  SENT
-  FAILED
+  UNREAD
+  READ
 }
 
 model Course {

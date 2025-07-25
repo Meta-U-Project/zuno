@@ -1,43 +1,69 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 const { calculateEMA, calculateRegressionSlope } = require('./zunoScoreMath');
+const { evaluateAndCreateNotifications } = require('./notificationTriggers');
 
 async function calculateZunoScoreForUser(userId) {
-    const canvasStats = await getCanvasCompletion(userId);
-    const zunoStats = await getZunoTaskCompletion(userId);
-    const studyStats = await getStudyAdherence(userId);
-    const taskDensity = await getTaskDensityStress(userId);
-    const trendScore = await getZunoScoreTrend(userId);
+	const canvasStats = await getCanvasCompletion(userId);
+	const zunoStats = await getZunoTaskCompletion(userId);
+	const studyStats = await getStudyAdherence(userId);
+	const taskDensity = await getTaskDensityStress(userId);
+	const trendScore = await getZunoScoreTrend(userId);
 
-    const calculatedScore =
-        0.4 * canvasStats.momentumScore +
-        0.3 * trendScore.stabilityScore +
-        0.2 * studyStats.adherenceScore +
-        0.1 * taskDensity.stressScore;
+	const calculatedScore =
+		0.4 * canvasStats.momentumScore +
+		0.3 * trendScore.stabilityScore +
+		0.2 * studyStats.adherenceScore +
+		0.1 * taskDensity.stressScore;
 
-    const historyDepth = await prisma.zunoScore.count({ where: { userId } });
-    const trustFactor = Math.min(historyDepth / 7, 1);
-    const fallbackScore = canvasStats.percent;
+	const historyDepth = await prisma.zunoScore.count({ where: { userId } });
+	const trustFactor = Math.min(historyDepth / 7, 1);
 
-    const zunoScore = Math.round(
+	let fallbackScore = Math.max(canvasStats.percent, zunoStats.percent, 60);
+    if (zunoStats.percent >= 80 && fallbackScore < 70) {
+        fallbackScore = 70;
+    }
+
+    let zunoScore = Math.round(
         trustFactor * calculatedScore + (1 - trustFactor) * fallbackScore
     );
 
-    await storeTaskCompletionHistory(userId, canvasStats, zunoStats);
 
-    await prisma.zunoScore.create({
-        data: {
-            userId,
-            score: zunoScore,
-            canvasCompletion: canvasStats.percent,
-            zunoTaskCompletion: zunoStats.percent,
-            studyAdherence: studyStats.adherenceScore,
-            taskDensityStress: taskDensity.stressScore,
-        },
-    });
+	if (historyDepth === 0 && zunoScore < 30) {
+		zunoScore = 30;
+	}
 
-    return zunoScore;
+	await storeTaskCompletionHistory(userId, canvasStats, zunoStats);
+
+	const recentZunoScores = await prisma.zunoScore.findMany({
+		where: { userId },
+		orderBy: { createdAt: 'desc' },
+		take: 2,
+	});
+
+	await prisma.zunoScore.create({
+		data: {
+			userId,
+			score: zunoScore,
+			canvasCompletion: canvasStats.percent,
+			zunoTaskCompletion: zunoStats.percent,
+			studyAdherence: studyStats.adherenceScore,
+			taskDensityStress: taskDensity.stressScore,
+		},
+	});
+
+	const notifications = await evaluateAndCreateNotifications(userId, {
+		canvasStats,
+		zunoStats,
+		studyStats,
+		taskDensity,
+		trendScore,
+		zunoHistory: recentZunoScores,
+	});
+
+	return { zunoScore, notifications };
 }
+
 
 async function getCanvasCompletion(userId) {
     const today = new Date();
