@@ -13,26 +13,31 @@ import ProfilePage from './pages/profile/ProfilePage';
 import TasksPage from './pages/tasks/TasksPage';
 import CoursesPage from './pages/courses/CoursesPage';
 import NotesPage from './pages/notes/NotesPage';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationPopup from './components/notifications/NotificationPopup';
 
 const App = () => {
   return (
-    <div>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage/>}/>
-        <Route path="/signup" element={<SignUpPage/>}/>
-        <Route path="/dashboard" element={<Dashboard/>}/>
-        <Route path="/calendar" element={<CalendarPage/>}/>
-        <Route path="/connect" element={<ConnectPage/>}/>
-        <Route path="/canvas-auth" element={<CanvasAuthPage/>}/>
-        <Route path="/forgot-password" element={<ResetPassword />} />
-        <Route path="/reset-password/:id/:token" element={<NewPasswordPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/courses" element={<CoursesPage />} />
-        <Route path="/notes" element={<NotesPage />} />
-      </Routes>
-    </div>
+    <NotificationProvider>
+      <div>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage/>}/>
+          <Route path="/signup" element={<SignUpPage/>}/>
+          <Route path="/dashboard" element={<Dashboard/>}/>
+          <Route path="/calendar" element={<CalendarPage/>}/>
+          <Route path="/connect" element={<ConnectPage/>}/>
+          <Route path="/canvas-auth" element={<CanvasAuthPage/>}/>
+          <Route path="/forgot-password" element={<ResetPassword />} />
+          <Route path="/reset-password/:id/:token" element={<NewPasswordPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/notes" element={<NotesPage />} />
+        </Routes>
+        <NotificationPopup />
+      </div>
+    </NotificationProvider>
   );
 };
 

@@ -201,6 +201,7 @@ model Notification {
   sent_at         DateTime
   status          NotificationStatus
   read			      Boolean				@default(false)
+  tag             String        @default("INFO")
 }
 
 model Analytics {
