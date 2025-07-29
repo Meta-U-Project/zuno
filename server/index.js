@@ -38,6 +38,9 @@ app.use('/api/analytics', analyticsRoutes);
 const notificationRoutes = require('./src/routes/notificationRoutes');
 app.use('/api/notifications', notificationRoutes);
 
+const studyChatRoutes = require('./src/routes/studyChatRoutes');
+app.use('/api/study-chat', studyChatRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Zuno backend running on port ${process.env.PORT}`);
 });

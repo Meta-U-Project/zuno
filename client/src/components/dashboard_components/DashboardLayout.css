@@ -1,48 +1,54 @@
 .dashboard-card {
-    border-radius: 8px;
-    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     border: 1px solid transparent;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal);
     display: flex;
     flex-direction: column;
-    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
+    background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+                var(--border-gradient) border-box;
+    box-shadow: var(--shadow-md);
 }
 
+.dashboard-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
 
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .card-header h3 {
-    color: #2d3748;
-    font-size: 1.1rem;
-    font-weight: 600;
+    color: var(--gray-800);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
     margin: 0;
-    font-family: "Poppins", sans-serif;
+    font-family: var(--font-family);
 }
 
 .view-all-link {
-    color: var(--blue);
-    font-size: 0.85rem;
-    font-weight: 400;
+    color: var(--primary-blue);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-normal);
     text-decoration: none;
-    font-family: "Poppins", sans-serif;
-    transition: color 0.2s ease;
+    font-family: var(--font-family);
+    transition: color var(--transition-normal);
 }
 
 .view-all-link:hover {
-    color: var(--purple);
+    color: var(--primary-purple);
 }
 
 .card-content {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-4);
     flex: 1;
 }
 
@@ -51,56 +57,52 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4rem 2rem;
+    padding: var(--space-16) var(--space-8);
     text-align: center;
 }
 
-.loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e2e8f0;
-    border-top: 3px solid var(--purple);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.loading-state .loading-spinner {
+    margin-bottom: var(--space-4);
 }
 
 .loading-state p {
-    color: #718096;
-    font-family: "Poppins", sans-serif;
+    color: var(--gray-500);
+    font-family: var(--font-family);
+    font-size: var(--text-sm);
 }
 
 .empty-state {
     text-align: center;
-    padding: 2rem 1rem;
-    color: #718096;
+    padding: var(--space-8) var(--space-4);
+    color: var(--gray-500);
 }
 
 .empty-state p {
     margin: 0;
-    font-size: 0.9rem;
-    font-family: "Poppins", sans-serif;
+    font-size: var(--text-sm);
+    font-family: var(--font-family);
 }
 
 .course-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    background: #f7fafc;
-    border-radius: 6px;
-    border-left: 3px solid var(--purple);
+    padding: var(--space-4);
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--primary-purple);
+    transition: all var(--transition-normal);
+}
+
+.course-item:hover {
+    background: var(--bg-active);
+    transform: translateY(-1px);
 }
 
 .courses-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: var(--space-4);
 }
 
 .courses-grid .course-item {
@@ -108,18 +110,18 @@
     flex-direction: column;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 0.3rem 1rem 1rem 1rem;
-    background: #f7fafc;
-    border-radius: 6px;
+    padding: var(--space-2) var(--space-4) var(--space-4) var(--space-4);
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
     border-left: none;
-    border-top: 3px solid var(--purple);
+    border-top: 3px solid var(--primary-purple);
     height: 60px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 .courses-grid .course-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
 }
 
 .courses-grid .course-instructor {
@@ -128,85 +130,91 @@
 }
 
 .course-info h4 {
-    color: #2d3748;
-    font-size: 0.95rem;
-    font-weight: 500;
-    margin: 0 0 0.25rem 0;
-    font-family: "Poppins", sans-serif;
+    color: var(--gray-800);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    margin: 0 0 var(--space-1) 0;
+    font-family: var(--font-family);
 }
 
 .course-info p {
-    color: #718096;
-    font-size: 0.8rem;
+    color: var(--gray-500);
+    font-size: var(--text-sm);
     margin: 0;
-    font-family: "Poppins", sans-serif;
+    font-family: var(--font-family);
 }
 
 .course-instructor {
-    color: #4a5568;
-    font-size: 0.8rem;
-    font-weight: 400;
-    font-family: "Poppins", sans-serif;
+    color: var(--gray-600);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-normal);
+    font-family: var(--font-family);
 }
 
 .notification-item {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 1rem;
-    background: #f7fafc;
-    border-radius: 6px;
-    border-left: 3px solid var(--purple);
+    padding: var(--space-4);
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--primary-purple);
+    transition: all var(--transition-normal);
+}
+
+.notification-item:hover {
+    background: var(--bg-active);
+    transform: translateY(-1px);
 }
 
 .notification-content h4 {
-    color: #2d3748;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin: 0 0 0.25rem 0;
-    line-height: 1.3;
-    font-family: "Poppins", sans-serif;
+    color: var(--gray-800);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    margin: 0 0 var(--space-1) 0;
+    line-height: var(--leading-tight);
+    font-family: var(--font-family);
 }
 
 .notification-content p {
-    color: #718096;
-    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-size: var(--text-xs);
     margin: 0;
-    font-family: "Poppins", sans-serif;
+    font-family: var(--font-family);
 }
 
 .notification-time {
-    color: #a0aec0;
-    font-size: 0.7rem;
+    color: var(--gray-400);
+    font-size: var(--text-xs);
     white-space: nowrap;
-    margin-left: 1rem;
-    font-family: "Poppins", sans-serif;
+    margin-left: var(--space-4);
+    font-family: var(--font-family);
 }
 
 .calendar-grid {
     display: flex;
     flex-direction: column;
-    gap: 0rem;
+    gap: 0;
 }
 
 .calendar-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.15rem;
-    margin: 0px;
+    gap: var(--space-1);
+    margin: 0;
     width: 100%;
     min-width: 0;
 }
 
 .day-header {
     text-align: center;
-    font-size: 0.7rem;
-    font-weight: 500;
-    color: #4a5568;
-    padding: 0.4rem 0.1rem;
-    font-family: "Poppins", sans-serif;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--gray-600);
+    padding: var(--space-2) var(--space-1);
+    font-family: var(--font-family);
     text-transform: uppercase;
-    letter-spacing: 0px;
+    letter-spacing: 0;
     white-space: nowrap;
     overflow: hidden;
 }
@@ -214,46 +222,46 @@
 .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.25rem;
+    gap: var(--space-1);
 }
 
 .calendar-day {
-    background: #f7fafc;
-    border-radius: 6px;
-    padding: 0.5rem;
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
     height: 80px;
     display: flex;
     flex-direction: column;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s ease;
+    border: 1px solid var(--border-light);
+    transition: all var(--transition-normal);
     cursor: pointer;
     overflow: visible;
 }
 
 .calendar-day:hover {
-    background: #edf2f7;
-    border-color: var(--purple);
+    background: var(--bg-active);
+    border-color: var(--primary-purple);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .calendar-day.today {
     background: linear-gradient(135deg, rgba(119, 53, 226, 0.1), rgba(10, 99, 172, 0.1));
-    border-color: var(--purple);
+    border-color: var(--primary-purple);
     box-shadow: 0 0 0 2px rgba(119, 53, 226, 0.2);
 }
 
 .day-number {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 0.25rem;
-    font-family: "Poppins", sans-serif;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-800);
+    margin-bottom: var(--space-1);
+    font-family: var(--font-family);
 }
 
 .calendar-day.today .day-number {
-    color: var(--purple);
-    font-weight: 700;
+    color: var(--primary-purple);
+    font-weight: var(--font-weight-bold);
 }
 
 .day-events {
@@ -362,12 +370,18 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    background: #f7fafc;
-    border-radius: 6px;
-    border-left: 3px solid var(--purple);
+    padding: var(--space-3);
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--primary-purple);
     height: 60px;
     overflow: hidden;
+    transition: all var(--transition-normal);
+}
+
+.task-item:hover {
+    background: var(--bg-active);
+    transform: translateY(-1px);
 }
 
 .task-info {
@@ -376,11 +390,11 @@
 }
 
 .task-info h4 {
-    color: #2d3748;
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin: 0 0 0.2rem 0;
-    font-family: "Poppins", sans-serif;
+    color: var(--gray-800);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    margin: 0 0 var(--space-1) 0;
+    font-family: var(--font-family);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -388,67 +402,68 @@
 }
 
 .task-info p {
-    color: #718096;
-    font-size: 0.7rem;
+    color: var(--gray-500);
+    font-size: var(--text-xs);
     margin: 0;
-    font-family: "Poppins", sans-serif;
+    font-family: var(--font-family);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .deadline-badge {
-    background: var(--main-gradient);
-    color: white;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.65rem;
-    font-weight: 500;
+    background: var(--primary-gradient);
+    color: var(--white);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-xl);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
     white-space: nowrap;
-    font-family: "Poppins", sans-serif;
+    font-family: var(--font-family);
     min-width: 70px;
     text-align: center;
 }
 
 .deadline-badge.overdue {
-    background: #e53e3e;
+    background: var(--error);
 }
 
 .study-options {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-4);
 }
 
 .study-option {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: #f7fafc;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--bg-hover);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-normal);
     cursor: pointer;
-    border-left: 3px solid var(--purple);
+    border-left: 3px solid var(--primary-purple);
 }
 
 .study-option:hover {
-    background: #edf2f7;
+    background: var(--bg-active);
+    transform: translateY(-1px);
 }
 
 .study-info h4 {
-    color: #2d3748;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin: 0 0 0.25rem 0;
-    font-family: "Poppins", sans-serif;
+    color: var(--gray-800);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    margin: 0 0 var(--space-1) 0;
+    font-family: var(--font-family);
 }
 
 .study-info p {
-    color: #718096;
-    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-size: var(--text-xs);
     margin: 0;
-    font-family: "Poppins", sans-serif;
+    font-family: var(--font-family);
 }
 
 .dashboard-content-grid {
@@ -497,4 +512,17 @@
     opacity: 0.9;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.header-icon-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.custom-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-right: 0.5rem;
 }

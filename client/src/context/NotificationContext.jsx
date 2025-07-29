@@ -19,7 +19,6 @@ export const NotificationProvider = ({ children }) => {
 			if (response.ok) {
 				const data = await response.json();
 
-				setNotifications(data);
 				setUnreadCount(data.length);
 
 				if (data.length > 0 && !showPopup) {
