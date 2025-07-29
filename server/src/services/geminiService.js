@@ -140,6 +140,121 @@ STUDENT CONTEXT:
 
         return systemPrompt;
     }
+    async getOrCreateActiveConversation(userId) {
+        try {
+            let conversation = await prisma.chatConversation.findFirst({
+                where: {
+                    userId,
+                    isActive: true
+                },
+                include: {
+                    messages: {
+                        orderBy: { timestamp: 'asc' },
+                        take: 20
+                    }
+                }
+            });
+
+            if (!conversation) {
+                conversation = await prisma.chatConversation.create({
+                    data: {
+                        userId,
+                        isActive: true
+                    },
+                    include: {
+                        messages: true
+                    }
+                });
+            }
+
+            return conversation;
+        } catch (error) {
+            console.error('Error getting/creating conversation:', error);
+            return null;
+        }
+    }
+
+    async generateResponse(message, userId, retryCount = 0) {
+        const maxRetries = 2;
+
+        try {
+            const conversation = await this.getOrCreateActiveConversation(userId);
+            if (!conversation) {
+                throw new Error('Failed to get conversation');
+            }
+
+            await prisma.chatMessage.create({
+                data: {
+                    conversationId: conversation.id,
+                    role: 'user',
+                    content: message
+                }
+            });
+
+            const userContext = await this.getUserContext(userId);
+            const systemPrompt = this.buildSystemPrompt(userContext);
+
+            let conversationHistory = '';
+            if (conversation.messages.length > 0) {
+                conversationHistory = '\n\nCONVERSATION HISTORY:\n';
+                conversation.messages.forEach(msg => {
+                    const role = msg.role === 'user' ? 'Student' : 'Zuno';
+                    conversationHistory += `${role}: ${msg.content}\n`;
+                });
+            }
+
+            const fullPrompt = `${systemPrompt}${conversationHistory}\n\nStudent Question: ${message}\n\nResponse:`;
+
+            const result = await this.model.generateContent(fullPrompt);
+            const response = await result.response;
+            const text = response.text();
+
+            await prisma.chatMessage.create({
+                data: {
+                    conversationId: conversation.id,
+                    role: 'assistant',
+                    content: text
+                }
+            });
+
+            await prisma.chatConversation.update({
+                where: { id: conversation.id },
+                data: { updatedAt: new Date() }
+            });
+
+            return {
+                success: true,
+                message: text,
+                conversationId: conversation.id,
+                error: null
+            };
+        } catch (error) {
+            console.error('Error generating Gemini response:', error);
+
+            if (error.status === 503 && retryCount < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+                return this.generateResponse(message, userId, retryCount + 1);
+            }
+
+            let fallbackMessage = "I'm having trouble processing your request right now. ";
+
+            if (error.status === 503) {
+                fallbackMessage += "The AI service is currently overloaded. Please try again in a few moments.";
+            } else if (error.status === 400) {
+                fallbackMessage += "There was an issue with your request. Please try rephrasing your question.";
+            } else if (error.status === 429) {
+                fallbackMessage += "I'm receiving too many requests right now. Please wait a moment and try again.";
+            } else {
+                fallbackMessage += "Please try again in a moment, or feel free to ask me about your studies, assignments, or any academic topics you'd like help with.";
+            }
+
+            return {
+                success: false,
+                message: fallbackMessage,
+                error: error.message
+            };
+        }
+    }
 
 
 }
