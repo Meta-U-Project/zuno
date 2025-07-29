@@ -1,25 +1,26 @@
 .dashboard-container {
     display: flex;
     min-height: 100vh;
-    background-color: #f8fafc;
+    background-color: var(--bg-primary);
 }
 
 .dashboard-main {
     flex: 1;
-    margin: 10px 10px 10px 230px;
+    margin: var(--space-3) var(--space-3) var(--space-3) 230px;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     border: 1px solid transparent;
-    background: linear-gradient(white, white) padding-box, linear-gradient(to right, rgba(119, 53, 226, 0.3), rgba(10, 99, 172, 0.3)) border-box;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1), 0 2px 5px rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
+    background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+                var(--border-gradient) border-box;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
 }
 
 .header-icons {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .header-icon-container {
@@ -29,11 +30,11 @@
 .header-icon {
     background: none;
     border: none;
-    padding: 0.5rem;
-    border-radius: 8px;
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: "Poppins", sans-serif;
+    transition: all var(--transition-normal);
+    font-family: var(--font-family);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -42,11 +43,11 @@
 .header-icon svg {
     width: 20px;
     height: 20px;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal);
 }
 
 .header-icon:hover {
-    background: #f7fafc;
+    background: var(--bg-hover);
 }
 
 .header-icon:hover svg {

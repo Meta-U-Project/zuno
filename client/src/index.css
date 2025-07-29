@@ -1,10 +1,7 @@
-@import url("https://fonts.googleapis.com/css?family=Poppins:300,400,500,700");
-:root {
-  --main-gradient: linear-gradient(to right, #7735e2, #0a63ac);
-  --blue: #0a63ac;
-  --purple: #7735e2;
-}
+@import './styles/design-system.css';
 
-body {
-  font-family: "Poppins", sans-serif;
+:root {
+  --main-gradient: var(--primary-gradient);
+  --blue: var(--primary-blue);
+  --purple: var(--primary-purple);
 }

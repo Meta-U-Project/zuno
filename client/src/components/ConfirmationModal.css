@@ -8,8 +8,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease-out;
+    z-index: var(--z-modal-backdrop);
+    animation: fadeIn var(--transition-normal) ease-out;
 }
 
 @keyframes fadeIn {
@@ -22,14 +22,15 @@
 }
 
 .confirmation-modal {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
     max-width: 400px;
     width: 90%;
     max-height: 90vh;
     overflow: hidden;
-    animation: slideIn 0.3s ease-out;
+    animation: slideIn var(--transition-slow) ease-out;
+    z-index: var(--z-modal);
 }
 
 @keyframes slideIn {
@@ -44,71 +45,71 @@
 }
 
 .modal-header {
-    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    padding: var(--space-6) var(--space-6) var(--space-4) var(--space-6);
     text-align: center;
 }
 
 .modal-icon {
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem auto;
+    margin: 0 auto var(--space-4) auto;
 }
 
 .modal-icon.warning {
-    background: #fef3c7;
-    color: #d97706;
+    background: var(--warning-light);
+    color: var(--warning);
 }
 
 .modal-icon.danger {
-    background: #fee2e2;
-    color: #dc2626;
+    background: var(--error-light);
+    color: var(--error);
 }
 
 .modal-icon.info {
-    background: #dbeafe;
-    color: #2563eb;
+    background: var(--info-light);
+    color: var(--info);
 }
 
 .modal-title {
-    font-family: "Poppins", sans-serif;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1f2937;
+    font-family: var(--font-family);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-800);
     margin: 0;
 }
 
 .modal-body {
-    padding: 0 1.5rem 1.5rem 1.5rem;
+    padding: 0 var(--space-6) var(--space-6) var(--space-6);
 }
 
 .modal-message {
-    font-family: "Poppins", sans-serif;
-    font-size: 0.95rem;
-    color: #6b7280;
-    line-height: 1.5;
+    font-family: var(--font-family);
+    font-size: var(--text-base);
+    color: var(--gray-500);
+    line-height: var(--leading-normal);
     text-align: center;
     margin: 0;
 }
 
 .modal-footer {
-    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    padding: var(--space-4) var(--space-6) var(--space-6) var(--space-6);
     display: flex;
-    gap: 0.75rem;
+    gap: var(--space-3);
     justify-content: flex-end;
 }
 
 .modal-button {
-    padding: 0.625rem 1.25rem;
-    border-radius: 8px;
-    font-family: "Poppins", sans-serif;
-    font-size: 0.9rem;
-    font-weight: 500;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-lg);
+    font-family: var(--font-family);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal);
     border: 1px solid transparent;
     display: flex;
     align-items: center;
@@ -122,14 +123,14 @@
 }
 
 .modal-button.cancel {
-    background: #f9fafb;
-    color: #374151;
-    border-color: #d1d5db;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    border-color: var(--border-medium);
 }
 
 .modal-button.cancel:hover:not(:disabled) {
-    background: #f3f4f6;
-    border-color: #9ca3af;
+    background: var(--gray-100);
+    border-color: var(--border-dark);
 }
 
 .modal-button.confirm.warning {
