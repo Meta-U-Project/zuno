@@ -175,8 +175,7 @@ STUDENT CONTEXT:
     }
 
     async generateResponse(message, userId, retryCount = 0) {
-        const maxRetries = 2;
-
+        const maxRetries = 2
         try {
             const conversation = await this.getOrCreateActiveConversation(userId);
             if (!conversation) {
@@ -256,6 +255,110 @@ STUDENT CONTEXT:
         }
     }
 
+    async getChatHistory(userId, conversationId = null) {
+        try {
+            let conversation;
+
+            if (conversationId) {
+                conversation = await prisma.chatConversation.findFirst({
+                    where: {
+                        id: conversationId,
+                        userId
+                    },
+                    include: {
+                        messages: {
+                            orderBy: { timestamp: 'asc' }
+                        }
+                    }
+                });
+            } else {
+                conversation = await prisma.chatConversation.findFirst({
+                    where: {
+                        userId,
+                        isActive: true
+                    },
+                    include: {
+                        messages: {
+                            orderBy: { timestamp: 'asc' }
+                        }
+                    }
+                });
+            }
+
+            return conversation?.messages || [];
+        } catch (error) {
+            console.error('Error getting chat history:', error);
+            return [];
+        }
+    }
+
+    async startNewConversation(userId, deletePrevious = false) {
+        try {
+            if (deletePrevious) {
+                await prisma.chatConversation.deleteMany({
+                    where: {
+                        userId,
+                        isActive: true
+                    }
+                });
+            } else {
+                await prisma.chatConversation.updateMany({
+                    where: {
+                        userId,
+                        isActive: true
+                    },
+                    data: {
+                        isActive: false
+                    }
+                });
+            }
+
+            const newConversation = await prisma.chatConversation.create({
+                data: {
+                    userId,
+                    isActive: true
+                },
+                include: {
+                    messages: true
+                }
+            });
+
+            return newConversation;
+        } catch (error) {
+            console.error('Error starting new conversation:', error);
+            return null;
+        }
+    }
+
+    async getConversationList(userId) {
+        try {
+            const conversations = await prisma.chatConversation.findMany({
+                where: { userId },
+                include: {
+                    messages: {
+                        take: 1,
+                        orderBy: { timestamp: 'desc' }
+                    },
+                    _count: {
+                        select: { messages: true }
+                    }
+                },
+                orderBy: { updatedAt: 'desc' }
+            });
+
+            return conversations.map(conv => ({
+                id: conv.id,
+                title: conv.title || (conv.messages[0]?.content.substring(0, 50) + '...' || 'New Conversation'),
+                isActive: conv.isActive,
+                messageCount: conv._count.messages,
+                lastMessage: conv.messages[0]?.content || null,
+                updatedAt: conv.updatedAt
+            }));
+        } catch (error) {
+            console.error('Error getting conversation list:', error);
+            return [];
+        }
+    }
 
 }
 
