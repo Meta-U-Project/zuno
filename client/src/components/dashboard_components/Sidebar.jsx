@@ -15,7 +15,7 @@ const Sidebar = () => {
         { id: "notes", label: "Notes", path: "/notes" },
         { id: "notifications", label: "Notifications", path: "/notifications" },
         // { id: "inbox", label: "Inbox", path: "/inbox" },
-        // { id: "study-chat", label: "Study Chat", path: "/study-chat" }
+        { id: "study-chat", label: "Study Chat", path: "/study-chat" }
     ];
 
     useEffect(() => {

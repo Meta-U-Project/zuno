@@ -14,6 +14,7 @@ import TasksPage from './pages/tasks/TasksPage';
 import CoursesPage from './pages/courses/CoursesPage';
 import NotesPage from './pages/notes/NotesPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
+import StudyChatPage from './pages/study-chat/StudyChatPage';
 import { NotificationProvider } from './context/NotificationContext';
 import NotificationPopup from './components/notifications/NotificationPopup';
 
@@ -29,6 +30,7 @@ const AuthenticatedRoutes = () => {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/study-chat" element={<StudyChatPage />} />
         </Routes>
         <NotificationPopup />
       </>

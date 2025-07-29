@@ -498,3 +498,16 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
+
+.header-icon-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.custom-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-right: 0.5rem;
+}

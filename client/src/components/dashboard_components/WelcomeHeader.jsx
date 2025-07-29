@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import PropTypes from "prop-types";
 
-const WelcomeHeader = ({ title, subtitle, onSettingsClick }) => {
+const WelcomeHeader = ({ title, subtitle, onSettingsClick, customActions }) => {
     const navigate = useNavigate();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [lastSyncTime, setLastSyncTime] = useState("");
@@ -103,6 +103,11 @@ const WelcomeHeader = ({ title, subtitle, onSettingsClick }) => {
                 )}
             </div>
             <div className="header-icon-container">
+                {customActions && (
+                    <div className="custom-actions">
+                        {customActions}
+                    </div>
+                )}
                 <div className="header-icons">
                     <button
                         className={`header-icon sync-icon ${isSyncing ? 'syncing' : ''}`}
